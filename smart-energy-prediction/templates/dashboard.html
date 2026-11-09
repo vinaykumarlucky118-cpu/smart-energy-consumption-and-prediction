@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h1 class="page-title"><i class="fas fa-th-large color-accent"></i> Energy Dashboard</h1>
+            <p class="page-subtitle">Real-time overview of your energy consumption, predictions, budget, and efficiency telemetry.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('advisor_page') }}" class="btn btn-sm btn-glass">
+                <i class="fas fa-robot color-accent me-1"></i> Ask Advisor
+            </a>
+            <a href="{{ url_for('predict') }}" class="btn btn-sm btn-accent">
+                <i class="fas fa-plus me-1"></i> New Prediction
+            </a>
+        </div>
+    </div>
+
+    <!-- Smart Alerts -->
+    {% if alerts %}
+    <div class="mb-grid">
+        {% for alert in alerts %}
+        <div class="alert-card alert-card-{{ alert.type }} mb-2 animate-in">
+            <div class="alert-card-icon">{{ alert.icon }}</div>
+            <div class="alert-card-content">
+                <div class="alert-card-title">{{ alert.title }}</div>
+                <div class="alert-card-message">{{ alert.message }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Top Row: Energy Score + Key Metrics -->
+    <div class="row g-3 mb-grid">
+        <!-- Energy Score -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card-glass h-100">
+                <div class="card-body text-center py-4">
+                    <div class="score-ring-container mx-auto mb-2">
+                        <svg width="140" height="140" viewBox="0 0 140 140">
+                            <circle class="score-ring-bg" cx="70" cy="70" r="56"/>
+                            <circle class="score-ring-fill" cx="70" cy="70" r="56"
+                                    stroke="{{ energy_score.color }}"
+                                    data-score="{{ energy_score.score }}"/>
+                        </svg>
+                        <div class="score-ring-text">
+                            <div class="score-value" style="color: {{ energy_score.color }};">{{ energy_score.score }}</div>
+                            <div class="score-label">/ 100</div>
+                        </div>
+                    </div>
+                    <div class="fw-bold" style="font-size: 0.9rem;">Efficiency Score</div>
+                    <div class="badge rounded-pill px-3 py-1 mt-1" style="background: {{ energy_score.color }}20; color: {{ energy_score.color }}; font-size: 0.75rem;">
+                        {{ energy_score.status }}
+                    </div>
+                    {% if potential_saving > 0 %}
+                    <div class="mt-2" style="font-size: 0.78rem; color: var(--text-secondary);">
+                        Potential Saving: <strong class="color-accent">{{ profile.get('currency', '₹') }}{{ potential_saving|int }}/mo</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Stats Cards -->
+        <div class="col-lg-9">
+            <div class="grid-4">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="stat-icon bg-accent-light color-accent"><i class="fas fa-bolt"></i></div>
+                        <div>
+                            <div class="stat-label">Latest Daily Usage</div>
+                            <div class="stat-value" data-counter="{{ latest_kwh }}" data-decimals="2" data-suffix=" kWh">0 kWh</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="stat-icon bg-blue-light color-blue"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <div class="stat-label">Predicted Monthly</div>
+                            <div class="stat-value" data-counter="{{ (latest_kwh * 30)|round(1) }}" data-decimals="1" data-suffix=" kWh">0 kWh</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="stat-icon bg-warning-light color-warning"><i class="fas fa-indian-rupee-sign"></i></div>
+                        <div>
+                            <div class="stat-label">Estimated Bill</div>
+                            <div class="stat-value" data-counter="{{ est_bill }}" data-decimals="0" data-prefix="{{ profile.get('currency', '₹') }}">₹0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="stat-icon bg-accent-light color-accent"><i class="fas fa-leaf"></i></div>
+                        <div>
+                            <div class="stat-label">Carbon Footprint</div>
+                            <div class="stat-value" data-counter="{{ co2 }}" data-decimals="1" data-suffix=" kg">0 kg</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.68rem; color: var(--text-muted);">CO₂ Factor: {{ profile.get('emission_factor', 0.82) }} kg/kWh</div>
+                </div>
+            </div>
+
+            <!-- Budget & Stats Row -->
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <div class="stat-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="fw-bold" style="font-size: 0.85rem;"><i class="fas fa-wallet me-2 color-warning"></i>Monthly Electricity Budget</div>
+                            <span style="font-size: 0.78rem; color: var(--text-secondary);">
+                                {{ profile.get('currency', '₹') }}{{ budget_status.get('estimated', 0)|int }} / {{ profile.get('currency', '₹') }}{{ budget_status.get('budget', 2000)|int }}
+                            </span>
+                        </div>
+                        <div class="progress-bar-custom">
+                            <div class="progress-bar-fill" style="width: {{ budget_status.get('percentage', 0) }}%; background: {% if budget_status.get('within', true) %}var(--accent){% else %}var(--danger){% endif %};"></div>
+                        </div>
+                        <div class="mt-1 d-flex justify-content-between align-items-center" style="font-size: 0.72rem; color: var(--text-muted);">
+                            <span>
+                                {% if budget_status.get('within', true) %}
+                                    <i class="fas fa-check-circle color-accent me-1"></i>Within Budget ({{ budget_status.get('percentage', 0) }}% utilized)
+                                {% else %}
+                                    <i class="fas fa-exclamation-triangle color-danger me-1"></i>Over Budget by {{ profile.get('currency', '₹') }}{{ (budget_status.get('estimated', 0) - budget_status.get('budget', 2000))|int }}
+                                {% endif %}
+                            </span>
+                            <a href="{{ url_for('settings') }}" class="text-decoration-none color-accent">Adjust</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stat-card">
+                        <div class="fw-bold mb-2" style="font-size: 0.85rem;"><i class="fas fa-chart-pie me-2 color-blue"></i>Consumption Distribution</div>
+                        <div class="d-flex gap-3">
+                            <div class="text-center flex-fill">
+                                <div class="fw-bold color-accent fs-5">{{ stats.low_count }}</div>
+                                <div class="badge badge-level badge-low">LOW (< 11.35)</div>
+                            </div>
+                            <div class="text-center flex-fill">
+                                <div class="fw-bold color-blue fs-5">{{ stats.normal_count }}</div>
+                                <div class="badge badge-level badge-normal">NORMAL</div>
+                            </div>
+                            <div class="text-center flex-fill">
+                                <div class="fw-bold color-danger fs-5">{{ stats.high_count }}</div>
+                                <div class="badge badge-level badge-high">HIGH (> 23.02)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row: Trend Line & Pie Distribution -->
+    <div class="row g-3 mb-grid">
+        <div class="col-lg-8">
+            <div class="card-glass">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0"><i class="fas fa-chart-area me-2 color-accent"></i>Energy Consumption Trend (Recent Predictions)</h6>
+                        <span class="badge rounded-pill bg-light text-dark" style="font-size: 0.72rem;">Last 20 Readings</span>
+                    </div>
+                    <div class="chart-container" style="height: 280px;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card-glass h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-chart-pie me-2 color-blue"></i>Level Ratio</h6>
+                    <div class="chart-container" style="height: 230px;">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly & Monthly Dynamics Row -->
+    <div class="row g-3 mb-grid">
+        <div class="col-lg-6">
+            <div class="card-glass">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-calendar-week me-2 color-purple"></i>7-Day Daily Average (kWh)</h6>
+                    <div class="chart-container" style="height: 220px;">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card-glass">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-calendar-days me-2 color-warning"></i>Monthly Consumption Aggregates</h6>
+                    <div class="chart-container" style="height: 220px;">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Comparison -->
+    {% if comparison %}
+    <div class="card-glass mb-grid">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="fas fa-arrows-left-right me-2 color-purple"></i>Current Month vs Previous Month</h6>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Automated baseline variance</span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="comparison-card" style="background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                        <div class="comparison-label">Current Month</div>
+                        <div class="comparison-value color-accent">{{ comparison.current.total_kwh }} kWh</div>
+                        <div class="comparison-label">{{ comparison.current.count }} records logged</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="comparison-card" style="background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                        <div class="comparison-label">Previous Month</div>
+                        <div class="comparison-value color-blue">{{ comparison.previous.total_kwh }} kWh</div>
+                        <div class="comparison-label">{{ comparison.previous.count }} records logged</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="comparison-card" style="background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                        <div class="comparison-label">Net Variance</div>
+                        {% set diff = comparison.current.total_kwh - comparison.previous.total_kwh %}
+                        {% set pct = ((diff / comparison.previous.total_kwh * 100) if comparison.previous.total_kwh > 0 else 0)|round(1) %}
+                        <div class="comparison-value {% if diff <= 0 %}color-accent{% else %}color-danger{% endif %}">
+                            {{ "%.1f"|format(pct) }}%
+                        </div>
+                        <div class="comparison-change {% if diff <= 0 %}change-positive{% else %}change-negative{% endif %}">
+                            <i class="fas {% if diff <= 0 %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                            {{ "%.1f"|format(diff|abs) }} kWh
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="row g-3">
+        <div class="col-md-3">
+            <a href="{{ url_for('predict') }}" class="card-glass d-block text-center p-4 h-100" style="text-decoration: none;">
+                <i class="fas fa-brain fs-2 color-accent mb-2"></i>
+                <div class="fw-bold text-dark" style="font-size: 0.88rem;">AI Prediction</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Forecast daily kWh demand</div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('advisor_page') }}" class="card-glass d-block text-center p-4 h-100" style="text-decoration: none;">
+                <i class="fas fa-robot fs-2 color-blue mb-2"></i>
+                <div class="fw-bold text-dark" style="font-size: 0.88rem;">Energy Advisor</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Chat with EnerSense AI</div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('simulator') }}" class="card-glass d-block text-center p-4 h-100" style="text-decoration: none;">
+                <i class="fas fa-sliders-h fs-2 color-warning mb-2"></i>
+                <div class="fw-bold text-dark" style="font-size: 0.88rem;">Energy Simulator</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Simulate runtime reductions</div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('bill_estimator') }}" class="card-glass d-block text-center p-4 h-100" style="text-decoration: none;">
+                <i class="fas fa-file-invoice-dollar fs-2 color-purple mb-2"></i>
+                <div class="fw-bold text-dark" style="font-size: 0.88rem;">Bill Estimator</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Tiered slab breakdown</div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const recent = {{ stats.recent | tojson }};
+    const monthlyData = {{ stats.monthly | tojson }};
+    const weeklyData = {{ weekly | tojson }};
+    const c = getChartColors();
+
+    // Trend Chart
+    const trendCtx = document.getElementById('trendChart')?.getContext('2d');
+    if (trendCtx && recent.length > 0) {
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: recent.map((r, i) => r.timestamp ? r.timestamp.split(' ')[0].slice(5) : `#${i+1}`),
+                datasets: [{
+                    label: 'Predicted kWh',
+                    data: recent.map(r => r.predicted_consumption),
+                    borderColor: c.accent,
+                    backgroundColor: c.accentAlpha,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: c.accent
+                }]
+            },
+            options: {
+                ...chartDefaults(),
+                plugins: {
+                    ...chartDefaults().plugins,
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // Pie Chart
+    const pieCtx = document.getElementById('pieChart')?.getContext('2d');
+    if (pieCtx) {
+        new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['LOW', 'NORMAL', 'HIGH'],
+                datasets: [{
+                    data: [{{ stats.low_count }}, {{ stats.normal_count }}, {{ stats.high_count }}],
+                    backgroundColor: [c.accent, c.blue, c.danger],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: c.text, font: { size: 11 }, padding: 15 }
+                    }
+                }
+            }
+        });
+    }
+
+    // Weekly Chart
+    const weeklyCtx = document.getElementById('weeklyChart')?.getContext('2d');
+    if (weeklyCtx) {
+        const labels = weeklyData && weeklyData.length > 0
+            ? weeklyData.map(d => d.day.slice(5))
+            : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const values = weeklyData && weeklyData.length > 0
+            ? weeklyData.map(d => d.avg_kwh)
+            : [0, 0, 0, 0, 0, 0, 0];
+
+        new Chart(weeklyCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Daily Avg (kWh)',
+                    data: values,
+                    backgroundColor: c.purple,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                ...chartDefaults(),
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // Monthly Chart
+    const monthlyCtx = document.getElementById('monthlyChart')?.getContext('2d');
+    if (monthlyCtx) {
+        const mLabels = monthlyData && monthlyData.length > 0
+            ? monthlyData.map(m => m.month)
+            : ['Prior', 'Current'];
+        const mValues = monthlyData && monthlyData.length > 0
+            ? monthlyData.map(m => m.avg_kwh)
+            : [0, 0];
+
+        new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: mLabels,
+                datasets: [{
+                    label: 'Monthly Avg kWh',
+                    data: mValues,
+                    backgroundColor: c.warning,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                ...chartDefaults(),
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

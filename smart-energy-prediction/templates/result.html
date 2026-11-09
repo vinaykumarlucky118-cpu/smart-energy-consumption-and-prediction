@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Prediction Result{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-chart-column color-accent"></i> Prediction Result</h1>
+        <p class="page-subtitle">Detailed analysis for prediction #{{ record.id }} — {{ record.timestamp }}</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Result Card -->
+        <div class="col-lg-8">
+            <!-- Primary Result -->
+            <div class="card-glass mb-3" style="border-left: 4px solid {{ color }};">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-4 text-center mb-3 mb-md-0">
+                            <div style="font-size: 2.5rem; font-weight: 800; font-family: 'Outfit'; color: {{ color }};">
+                                {{ record.predicted_consumption }}
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">kWh Predicted</div>
+                            <span class="badge badge-level badge-{{ level|lower }} mt-2 px-3 py-1">{{ level }} — {{ level_label }}</span>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="score-ring-container mx-auto mb-1" style="width: 100px; height: 100px;">
+                                <svg width="100" height="100" viewBox="0 0 100 100">
+                                    <circle class="score-ring-bg" cx="50" cy="50" r="40" stroke-width="8"/>
+                                    <circle class="score-ring-fill" cx="50" cy="50" r="40" stroke-width="8"
+                                            stroke="{{ energy_score.color }}" data-score="{{ energy_score.score }}"
+                                            style="stroke-dasharray: {{ 2 * 3.14159 * 40 }}; stroke-dashoffset: {{ 2 * 3.14159 * 40 }};">
+                                    </circle>
+                                </svg>
+                                <div class="score-ring-text">
+                                    <div class="score-value" style="font-size: 1.3rem; color: {{ energy_score.color }};">{{ energy_score.score }}</div>
+                                    <div class="score-label" style="font-size: 0.6rem;">/100</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.78rem; font-weight: 600;">Energy Score</div>
+                            <div style="font-size: 0.72rem; color: {{ energy_score.color }};">{{ energy_score.status }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">Monthly Estimate</div>
+                                <div class="fw-bold">{{ monthly_kwh }} kWh</div>
+                            </div>
+                            <div class="mb-2">
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">Estimated Bill</div>
+                                <div class="fw-bold color-warning">₹{{ monthly_bill }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">CO₂ (monthly)</div>
+                                <div class="fw-bold color-accent">{{ co2_monthly }} kg</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Physics vs ML Comparison -->
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-atom me-2 color-blue"></i>Physics vs ML Comparison</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3" style="background: var(--bg-tertiary);">
+                                <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Physics Calculation</div>
+                                <div class="fw-bold mt-1">P = {{ record.voltage }} × {{ record.current }} = {{ physics_power_kw }} kW</div>
+                                <div class="fw-bold">E = {{ physics_power_kw }} × {{ record.usage_hours }} = {{ ideal_physics_kwh }} kWh</div>
+                                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px;">Ideal calculation (P=V×I, E=P×t)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3" style="background: var(--accent-light);">
+                                <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">ML Prediction</div>
+                                <div class="fw-bold mt-1 color-accent" style="font-size: 1.2rem;">{{ record.predicted_consumption }} kWh</div>
+                                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px;">
+                                    Accounts for temperature, appliance count, and historical patterns
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-lightbulb me-2 color-warning"></i>Personalized Recommendations</h6>
+                    <div class="d-flex flex-column gap-2">
+                        {% for tip in tips %}
+                        <div class="tip-card tip-{{ tip.type }}">
+                            <div class="tip-icon"><i class="fas {{ tip.icon }}"></i></div>
+                            <div>
+                                <div class="tip-text">{{ tip.text }}</div>
+                                <div class="tip-reason">{{ tip.reason }}</div>
+                                <span class="tip-impact">{{ tip.impact }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            {% if potential_saving > 0 %}
+            <div class="card-glass" style="border-left: 4px solid var(--accent);">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-accent-light color-accent"><i class="fas fa-piggy-bank"></i></div>
+                    <div>
+                        <div class="fw-bold">Potential Monthly Saving</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                            By optimizing usage, you could save approximately <strong class="color-accent">₹{{ potential_saving|int }}/month</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Input Summary Sidebar -->
+        <div class="col-lg-4">
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-list me-2"></i>Input Parameters</h6>
+                    <table class="w-100" style="font-size: 0.85rem;">
+                        <tr><td class="py-1" style="color: var(--text-secondary);">Voltage</td><td class="py-1 text-end fw-bold">{{ record.voltage }} V</td></tr>
+                        <tr><td class="py-1" style="color: var(--text-secondary);">Current</td><td class="py-1 text-end fw-bold">{{ record.current }} A</td></tr>
+                        <tr><td class="py-1" style="color: var(--text-secondary);">Usage Hours</td><td class="py-1 text-end fw-bold">{{ record.usage_hours }} hrs</td></tr>
+                        <tr><td class="py-1" style="color: var(--text-secondary);">Appliances</td><td class="py-1 text-end fw-bold">{{ record.number_of_appliances }}</td></tr>
+                        <tr><td class="py-1" style="color: var(--text-secondary);">Temperature</td><td class="py-1 text-end fw-bold">{{ record.temperature }}°C</td></tr>
+                        <tr><td class="py-1" style="color: var(--text-secondary);">Prev. Consumption</td><td class="py-1 text-end fw-bold">{{ record.previous_consumption }} kWh</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-leaf me-2 color-accent"></i>Carbon Footprint</h6>
+                    <div class="text-center mb-2">
+                        <div style="font-size: 2rem; font-weight: 800; font-family: 'Outfit'; color: var(--accent);">{{ co2_monthly }}</div>
+                        <div style="font-size: 0.78rem; color: var(--text-secondary);">kg CO₂ / month (estimated)</div>
+                    </div>
+                    <div class="progress-bar-custom mb-2">
+                        <div class="progress-bar-fill" style="width: {{ [co2_monthly / 50 * 100, 100]|min }}%; background: var(--accent);"></div>
+                    </div>
+                    <p style="font-size: 0.72rem; color: var(--text-muted);">
+                        Based on emission factor: {{ emission_factor }} kg CO₂/kWh. This is an estimate and varies by region/energy source.
+                    </p>
+                </div>
+            </div>
+
+            <div class="d-flex flex-column gap-2">
+                <a href="{{ url_for('predict') }}" class="btn btn-accent w-100">
+                    <i class="fas fa-brain me-2"></i> New Prediction
+                </a>
+                <a href="{{ url_for('simulator') }}" class="btn btn-glass w-100">
+                    <i class="fas fa-sliders-h me-2"></i> Try Energy Simulator
+                </a>
+                <a href="{{ url_for('history') }}" class="btn btn-glass w-100">
+                    <i class="fas fa-clock-rotate-left me-2"></i> View History
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

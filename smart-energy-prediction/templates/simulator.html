@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+{% block title %}Energy Simulator{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h1 class="page-title"><i class="fas fa-sliders-h color-warning"></i> Energy Saving Simulator</h1>
+            <p class="page-subtitle">Adjust appliance usage hours and simulate "what-if" scenarios to discover how much energy and money you can save.</p>
+        </div>
+        <form method="POST" action="{{ url_for('simulator') }}" class="d-inline">
+            <input type="hidden" name="action" value="load_defaults">
+            <button type="submit" class="btn btn-glass btn-sm">
+                <i class="fas fa-rotate-right me-1 color-accent"></i> Reset to Standard Household
+            </button>
+        </form>
+    </div>
+
+    <!-- Quick Presets -->
+    <div class="card-glass mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <span class="fw-bold" style="font-size: 0.88rem;"><i class="fas fa-magic me-2 color-accent"></i>Quick Simulation Presets:</span>
+                <span style="font-size: 0.75rem; color: var(--text-secondary);">Click a preset to quickly configure your reduction targets</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-glass btn-sm" onclick="applyPreset('ac_cut')">
+                    <i class="fas fa-wind me-1 color-blue"></i> AC Saver (-2h daily)
+                </button>
+                <button type="button" class="btn btn-glass btn-sm" onclick="applyPreset('eco_20')">
+                    <i class="fas fa-leaf me-1 color-accent"></i> 20% General Reduction
+                </button>
+                <button type="button" class="btn btn-glass btn-sm" onclick="applyPreset('standby')">
+                    <i class="fas fa-power-off me-1 color-warning"></i> Zero Idle / Standby
+                </button>
+                <button type="button" class="btn btn-glass btn-sm" onclick="applyPreset('reset_baseline')">
+                    <i class="fas fa-undo me-1"></i> Match Current Hours
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulator Form -->
+    <form method="POST" action="{{ url_for('simulator') }}" id="simForm">
+        <input type="hidden" name="action" value="simulate">
+        <div class="card-glass mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-sliders me-2 color-accent"></i>Adjust Appliance Operating Hours</h5>
+                    <span class="badge badge-level badge-normal">Current Tariff: ₹{{ profile.get('tariff_rate', 6.0) }}/unit</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-modern w-100 align-middle">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 180px;">Appliance</th>
+                                <th>Rated Power</th>
+                                <th>Qty</th>
+                                <th>Current Usage</th>
+                                <th style="min-width: 200px;">Simulated Usage (Hours/Day)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in appliances %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ a.name }}</div>
+                                    <input type="hidden" name="sim_name_{{ loop.index0 }}" value="{{ a.name }}">
+                                    <input type="hidden" name="sim_power_{{ loop.index0 }}" value="{{ a.power_watts }}">
+                                    <input type="hidden" name="sim_qty_{{ loop.index0 }}" value="{{ a.quantity }}">
+                                </td>
+                                <td><span class="badge rounded-pill" style="background: var(--bg-tertiary); color: var(--text-primary);">{{ a.power_watts }}W</span></td>
+                                <td><span class="fw-semibold">×{{ a.quantity }}</span></td>
+                                <td>
+                                    <div class="input-group input-group-sm" style="width: 110px;">
+                                        <input type="number" step="0.5" class="form-control current-hrs-input"
+                                               name="sim_current_hrs_{{ loop.index0 }}" id="current_hrs_{{ loop.index0 }}"
+                                               value="{{ a.hours_per_day }}" min="0" max="24"
+                                               data-index="{{ loop.index0 }}"
+                                               data-name="{{ a.name }}"
+                                               data-power="{{ a.power_watts }}"
+                                               data-qty="{{ a.quantity }}">
+                                        <span class="input-group-text">h</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input type="range" class="form-range flex-grow-1 sim-slider"
+                                               id="slider_{{ loop.index0 }}"
+                                               min="0" max="24" step="0.5"
+                                               value="{{ a.hours_per_day }}"
+                                               oninput="syncSlider({{ loop.index0 }}, this.value)">
+                                        <div class="input-group input-group-sm" style="width: 100px;">
+                                            <input type="number" step="0.5" class="form-control sim-hrs-input"
+                                                   style="border-color: var(--accent); font-weight: 600;"
+                                                   name="sim_new_hrs_{{ loop.index0 }}" id="new_hrs_{{ loop.index0 }}"
+                                                   value="{{ a.hours_per_day }}" min="0" max="24"
+                                                   oninput="syncInput({{ loop.index0 }}, this.value)">
+                                            <span class="input-group-text">h</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{{ url_for('appliance_calculator') }}" class="btn btn-glass btn-sm">
+                        <i class="fas fa-plus me-1"></i> Add / Edit Appliances in Inventory
+                    </a>
+                    <button type="submit" class="btn btn-accent px-4 py-2">
+                        <i class="fas fa-play me-2"></i> Run Simulation & Calculate Savings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Simulation Results Section -->
+    {% if result %}
+    <div class="row g-4 mb-4">
+        <!-- Savings / Consumption Impact Card -->
+        <div class="col-lg-4">
+            {% if result.energy_saved > 0 %}
+            <!-- Case 1: Usage Decreased -> Savings (Green Card) -->
+            <div class="card-glass h-100" style="border-left: 4px solid var(--accent);">
+                <div class="card-body text-center py-4 d-flex flex-column justify-content-center">
+                    <div class="stat-icon bg-accent-light color-accent mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.6rem;">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div style="font-size: 2.3rem; font-weight: 800; font-family: 'Outfit'; color: var(--accent);">
+                        ₹{{ result.money_saved }}
+                    </div>
+                    <div class="fw-bold" style="font-size: 0.95rem;">Projected Monthly Savings</div>
+                    <p class="mt-2 mb-0" style="font-size: 0.8rem; color: var(--text-secondary);">
+                        Save <strong class="color-accent">{{ result.energy_saved }} kWh</strong> and prevent <strong class="color-blue">{{ result.co2_saved }} kg CO₂</strong> monthly!
+                    </p>
+                </div>
+            </div>
+            {% elif result.energy_saved < 0 %}
+            <!-- Case 2: Usage Increased -> Warning Card (Amber/Red) -->
+            <div class="card-glass h-100" style="border-left: 4px solid var(--danger);">
+                <div class="card-body text-center py-4 d-flex flex-column justify-content-center">
+                    <div class="stat-icon bg-danger-light color-danger mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.6rem;">
+                        <i class="fas fa-triangle-exclamation"></i>
+                    </div>
+                    <div style="font-size: 2.3rem; font-weight: 800; font-family: 'Outfit'; color: var(--danger);">
+                        +₹{{ (result.money_saved * -1) | round(1) }}
+                    </div>
+                    <div class="fw-bold color-danger" style="font-size: 0.95rem;">Increased Consumption & Additional Cost</div>
+                    <p class="mt-2 mb-0" style="font-size: 0.8rem; color: var(--text-secondary);">
+                        Usage increases by <strong class="color-danger">+{{ (result.energy_saved * -1) | round(2) }} kWh</strong>, adding <strong class="color-danger">+₹{{ (result.money_saved * -1) | round(1) }}</strong> to your bill and <strong class="color-danger">+{{ (result.co2_saved * -1) | round(2) }} kg CO₂</strong> monthly.
+                    </p>
+                </div>
+            </div>
+            {% else %}
+            <!-- Case 3: No Change in Consumption (Info Card) -->
+            <div class="card-glass h-100" style="border-left: 4px solid var(--blue);">
+                <div class="card-body text-center py-4 d-flex flex-column justify-content-center">
+                    <div class="stat-icon bg-blue-light color-blue mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.6rem;">
+                        <i class="fas fa-equals"></i>
+                    </div>
+                    <div style="font-size: 2.3rem; font-weight: 800; font-family: 'Outfit'; color: var(--blue);">
+                        ₹0.0
+                    </div>
+                    <div class="fw-bold" style="font-size: 0.95rem;">No Change in Consumption</div>
+                    <p class="mt-2 mb-0" style="font-size: 0.8rem; color: var(--text-secondary);">
+                        Simulated runtime matches your current baseline. Adjust hours to simulate potential savings.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <div class="stat-card text-center py-4 h-100 d-flex flex-column justify-content-center">
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Current Baseline</div>
+                <div style="font-size: 2rem; font-weight: 700; font-family: 'Outfit'; color: var(--danger);">{{ result.total_current }}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">kWh / month</div>
+                <div class="mt-2 fw-semibold" style="font-size: 0.85rem;">Est. Bill: ₹{{ (result.total_current * profile.get('tariff_rate', 6.0)) | round(1) }}</div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="stat-card text-center py-4 h-100 d-flex flex-column justify-content-center">
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Optimized Simulation</div>
+                <div style="font-size: 2rem; font-weight: 700; font-family: 'Outfit'; color: var(--accent);">{{ result.total_new }}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">kWh / month</div>
+                <div class="mt-2 fw-semibold color-accent" style="font-size: 0.85rem;">New Bill: ₹{{ (result.total_new * profile.get('tariff_rate', 6.0)) | round(1) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Before vs After Chart -->
+    <div class="card-glass mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3"><i class="fas fa-chart-column me-2 color-blue"></i>Before vs After Appliance Energy Consumption (kWh/month)</h5>
+            <div class="chart-container" style="height: 320px;">
+                <canvas id="simChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Per Appliance Breakdown -->
+    <div class="card-glass">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3"><i class="fas fa-list-check me-2 color-accent"></i>Per-Appliance Savings Breakdown</h5>
+            <div class="table-responsive">
+                <table class="table-modern w-100 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Appliance</th>
+                            <th>Current (kWh/mo)</th>
+                            <th>New (kWh/mo)</th>
+                            <th>Energy Saved</th>
+                            <th>Monthly Cost Saved</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in result['sim_items'] %}
+                        <tr>
+                            <td class="fw-bold">{{ item.name }}</td>
+                            <td>{{ item.current_monthly }} kWh</td>
+                            <td>{{ item.new_monthly }} kWh</td>
+                            <td class="fw-bold {% if item.saved_monthly > 0 %}color-accent{% elif item.saved_monthly < 0 %}color-danger{% endif %}">
+                                {% if item.saved_monthly > 0 %}
+                                    <i class="fas fa-arrow-down me-1"></i>{{ item.saved_monthly }} kWh
+                                {% elif item.saved_monthly < 0 %}
+                                    <i class="fas fa-arrow-up me-1"></i>+{{ (item.saved_monthly * -1) | round(2) }} kWh
+                                {% else %}
+                                    0.0 kWh
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold {% if item.saved_monthly > 0 %}color-accent{% elif item.saved_monthly < 0 %}color-danger{% endif %}">
+                                {% if item.saved_monthly > 0 %}
+                                    ₹{{ (item.saved_monthly * profile.get('tariff_rate', 6.0)) | round(1) }}
+                                {% elif item.saved_monthly < 0 %}
+                                    +₹{{ ((item.saved_monthly * -1) * profile.get('tariff_rate', 6.0)) | round(1) }}
+                                {% else %}
+                                    ₹0.0
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function syncSlider(index, val) {
+    const input = document.getElementById('new_hrs_' + index);
+    if (input) input.value = val;
+}
+
+function syncInput(index, val) {
+    const slider = document.getElementById('slider_' + index);
+    if (slider) slider.value = val;
+}
+
+function applyPreset(type) {
+    const inputs = document.querySelectorAll('.current-hrs-input');
+    inputs.forEach(curInput => {
+        const idx = curInput.dataset.index;
+        const name = (curInput.dataset.name || '').toLowerCase();
+        const curVal = parseFloat(curInput.value) || 0;
+        let newVal = curVal;
+
+        if (type === 'ac_cut') {
+            if (name.includes('ac') || name.includes('conditioner') || name.includes('cooler')) {
+                newVal = Math.max(1, curVal - 2);
+            }
+        } else if (type === 'eco_20') {
+            newVal = Math.max(0, Math.round((curVal * 0.8) * 10) / 10);
+        } else if (type === 'standby') {
+            if (name.includes('tv') || name.includes('television') || name.includes('computer') || name.includes('geyser') || name.includes('heater')) {
+                newVal = Math.max(0.5, Math.round((curVal * 0.7) * 10) / 10);
+            }
+        } else if (type === 'reset_baseline') {
+            newVal = curVal;
+        }
+
+        const newHrsInput = document.getElementById('new_hrs_' + idx);
+        const slider = document.getElementById('slider_' + idx);
+        if (newHrsInput) newHrsInput.value = newVal;
+        if (slider) slider.value = newVal;
+    });
+
+    const form = document.getElementById('simForm');
+    if (form) form.submit();
+}
+
+{% if result %}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('simChart')?.getContext('2d');
+    if (!ctx) return;
+    const c = getChartColors();
+    const items = {{ result['sim_items'] | tojson }};
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: items.map(i => i.name),
+            datasets: [
+                {
+                    label: 'Current Usage (kWh/mo)',
+                    data: items.map(i => i.current_monthly),
+                    backgroundColor: '#ef444499',
+                    borderColor: '#ef4444',
+                    borderWidth: 1.5,
+                    borderRadius: 6
+                },
+                {
+                    label: 'Simulated Usage (kWh/mo)',
+                    data: items.map(i => i.new_monthly),
+                    backgroundColor: '#10b98199',
+                    borderColor: '#10b981',
+                    borderWidth: 1.5,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            ...chartDefaults(),
+            plugins: {
+                ...chartDefaults().plugins,
+                legend: {
+                    position: 'top',
+                    labels: { color: c.text, font: { size: 12 } }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: c.textSecondary, font: { size: 11 } },
+                    grid: { display: false }
+                },
+                y: {
+                    ticks: { color: c.textSecondary, font: { size: 11 } },
+                    grid: { color: c.border }
+                }
+            }
+        }
+    });
+});
+{% endif %}
+</script>
+{% endblock %}

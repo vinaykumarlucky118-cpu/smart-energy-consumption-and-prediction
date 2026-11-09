@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Physics & AI{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-atom color-blue"></i> Physics & AI — How This Works</h1>
+        <p class="page-subtitle">Understanding the science behind energy prediction — the connection between Physics formulas and Machine Learning models.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <!-- Physics Foundation -->
+            <div class="card-glass mb-3">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-3"><i class="fas fa-flask me-2 color-blue"></i>Physics Foundation</h4>
+                    <div class="p-3 rounded-3 mb-3" style="background: var(--bg-tertiary);">
+                        <h5 class="fw-bold mb-2">Ohm's Law & Power Formula</h5>
+                        <div class="mb-2" style="font-size: 1.1rem;">
+                            <strong>P = V × I</strong> &nbsp; (Electrical Power in Watts)
+                        </div>
+                        <ul style="font-size: 0.88rem; color: var(--text-secondary);">
+                            <li><strong>P</strong> = Power (Watts, W)</li>
+                            <li><strong>V</strong> = Voltage (Volts, V) — the electrical pressure</li>
+                            <li><strong>I</strong> = Current (Amperes, A) — the flow of charge</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-3 mb-3" style="background: var(--bg-tertiary);">
+                        <h5 class="fw-bold mb-2">Energy Equation</h5>
+                        <div class="mb-2" style="font-size: 1.1rem;">
+                            <strong>E = P × t / 1000</strong> &nbsp; (Energy in kilowatt-hours)
+                        </div>
+                        <ul style="font-size: 0.88rem; color: var(--text-secondary);">
+                            <li><strong>E</strong> = Energy consumed (kWh — what you pay for)</li>
+                            <li><strong>t</strong> = Time (hours)</li>
+                            <li>Division by 1000 converts Wh to kWh</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-3 rounded-3" style="background: var(--accent-light); border: 1px solid var(--accent-subtle);">
+                        <h5 class="fw-bold mb-2 color-accent">Example Calculation</h5>
+                        <p style="font-size: 0.88rem;">
+                            An appliance at <strong>230V</strong> drawing <strong>5A</strong> for <strong>6 hours</strong>:
+                        </p>
+                        <ul style="font-size: 0.88rem;">
+                            <li>Power: P = 230 × 5 = <strong>1,150W = 1.15 kW</strong></li>
+                            <li>Energy: E = 1.15 × 6 = <strong>6.9 kWh</strong></li>
+                            <li>Daily Cost (at ₹6/kWh): 6.9 × 6 = <strong>₹41.40</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Machine Learning -->
+            <div class="card-glass mb-3">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-3"><i class="fas fa-brain me-2 color-accent"></i>Machine Learning Approach</h4>
+                    
+                    <div class="mb-3">
+                        <h6 class="fw-bold">Why ML on Top of Physics?</h6>
+                        <p style="font-size: 0.88rem; color: var(--text-secondary);">
+                            The physics formula gives an <strong>ideal</strong> calculation. But real-world energy consumption is affected by:
+                        </p>
+                        <ul style="font-size: 0.85rem;">
+                            <li><strong>Temperature:</strong> AC, heaters, and fans adjust consumption based on climate</li>
+                            <li><strong>Number of appliances:</strong> Interactions between devices (e.g., fridge + AC both drawing power)</li>
+                            <li><strong>Historical patterns:</strong> Habits, seasonal variations, and usage trends</li>
+                            <li><strong>Non-linear effects:</strong> Physics assumes constant voltage/current; reality is variable</li>
+                        </ul>
+                        <p style="font-size: 0.88rem; color: var(--text-secondary);">
+                            ML captures these non-linear, multi-variable relationships that a simple formula cannot.
+                        </p>
+                    </div>
+
+                    <div class="p-3 rounded-3 mb-3" style="background: var(--bg-tertiary);">
+                        <h6 class="fw-bold">ML Pipeline</h6>
+                        <div style="font-size: 0.88rem;">
+                            <ol>
+                                <li>Input Features: <code>voltage, current, usage_hours, number_of_appliances, temperature, previous_consumption</code></li>
+                                <li>Feature Scaling: <code>StandardScaler</code> (zero mean, unit variance)</li>
+                                <li>Model Training: <code>RandomForestRegressor</code> + <code>LinearRegression</code></li>
+                                <li>Model Selection: Best R² score → saved as <code>energy_model.pkl</code></li>
+                                <li>Prediction: Scaled features → ML model → predicted kWh</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3" style="background: var(--accent-light);">
+                                <h6 class="fw-bold">Random Forest</h6>
+                                <ul style="font-size: 0.82rem; margin-bottom: 0;">
+                                    <li>Ensemble of decision trees</li>
+                                    <li>Captures non-linear patterns</li>
+                                    <li>Resistant to overfitting</li>
+                                    <li>Best for: complex feature interactions</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3" style="background: var(--blue-light);">
+                                <h6 class="fw-bold">Linear Regression</h6>
+                                <ul style="font-size: 0.82rem; margin-bottom: 0;">
+                                    <li>y = β₀ + β₁x₁ + ... + βₙxₙ</li>
+                                    <li>Interpretable coefficients</li>
+                                    <li>Baseline for comparison</li>
+                                    <li>Best for: linear relationships</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consumption Classification -->
+            <div class="card-glass">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-3"><i class="fas fa-layer-group me-2 color-purple"></i>Consumption Classification</h4>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="p-3 text-center rounded-3" style="background: var(--accent-light);">
+                                <div class="badge badge-level badge-low px-3 py-1 mb-2">LOW</div>
+                                <div style="font-size: 0.85rem;"><strong>&lt; 5 kWh</strong></div>
+                                <div style="font-size: 0.78rem; color: var(--text-secondary);">Efficient usage</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 text-center rounded-3" style="background: var(--blue-light);">
+                                <div class="badge badge-level badge-normal px-3 py-1 mb-2">NORMAL</div>
+                                <div style="font-size: 0.85rem;"><strong>5 – 15 kWh</strong></div>
+                                <div style="font-size: 0.78rem; color: var(--text-secondary);">Average household</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 text-center rounded-3" style="background: var(--danger-light);">
+                                <div class="badge badge-level badge-high px-3 py-1 mb-2">HIGH</div>
+                                <div style="font-size: 0.85rem;"><strong>&gt; 15 kWh</strong></div>
+                                <div style="font-size: 0.78rem; color: var(--text-secondary);">Consider optimization</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-chart-bar me-2 color-warning"></i>Model Metrics</h6>
+                    {% if metrics.get('random_forest') %}
+                    <div style="font-size: 0.85rem;">
+                        <h6 class="fw-bold mb-2" style="font-size: 0.8rem;">Random Forest</h6>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>R² Score</span><span class="fw-bold color-accent">{{ metrics.random_forest.r2 }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>MAE</span><span class="fw-bold">{{ metrics.random_forest.mae }} kWh</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>RMSE</span><span class="fw-bold">{{ metrics.random_forest.rmse }} kWh</span>
+                        </div>
+                    </div>
+                    {% if metrics.get('linear_regression') %}
+                    <div style="font-size: 0.85rem;">
+                        <h6 class="fw-bold mb-2" style="font-size: 0.8rem;">Linear Regression</h6>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>R² Score</span><span class="fw-bold color-blue">{{ metrics.linear_regression.r2 }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>MAE</span><span class="fw-bold">{{ metrics.linear_regression.mae }} kWh</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>RMSE</span><span class="fw-bold">{{ metrics.linear_regression.rmse }} kWh</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">Train the model to see performance metrics.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-file-alt me-2 color-accent"></i>Tech Stack</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for tech in ['Python 3.x', 'Flask', 'Scikit-learn', 'Pandas', 'NumPy', 'SQLite', 'Chart.js', 'Bootstrap 5'] %}
+                        <span class="badge rounded-pill px-2 py-1" style="background: var(--bg-tertiary); color: var(--text-secondary); font-size: 0.72rem;">{{ tech }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-glass">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-graduation-cap me-2 color-purple"></i>B.Tech Project</h6>
+                    <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0;">
+                        This project is designed for B.Tech CSE (AI & ML) students. It demonstrates the practical application of Machine Learning on physics-based energy data for real-world prediction and optimization.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

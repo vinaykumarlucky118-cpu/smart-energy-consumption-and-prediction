@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-cog color-blue"></i> Settings</h1>
+        <p class="page-subtitle">Configure your profile, budget, tariff, and regional preferences.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <form method="POST" action="{{ url_for('settings') }}">
+                <!-- Profile -->
+                <div class="card-glass mb-3">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-user me-2 color-accent"></i>Profile</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="name">Display Name</label>
+                                <input type="text" class="form-control" id="name" name="name"
+                                       value="{{ current_user.name }}" placeholder="Your Name">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+                                <div class="form-text" style="font-size: 0.72rem;">Email cannot be changed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Home Details -->
+                <div class="card-glass mb-3">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-home me-2 color-purple"></i>Home Details</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="home_type">Home Type</label>
+                                <select class="form-select" id="home_type" name="home_type">
+                                    {% for ht in ['Apartment', 'Independent House', 'Villa', 'Hostel/PG', 'Office', 'Other'] %}
+                                    <option value="{{ ht }}" {% if profile.get('home_type') == ht %}selected{% endif %}>{{ ht }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="num_people">Number of People</label>
+                                <input type="number" class="form-control" id="num_people" name="num_people"
+                                       value="{{ profile.get('num_people', 2) }}" min="1" max="20">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="region">Region</label>
+                                <select class="form-select" id="region" name="region">
+                                    {% for r in ['India', 'North India', 'South India', 'East India', 'West India', 'Other'] %}
+                                    <option value="{{ r }}" {% if profile.get('region') == r %}selected{% endif %}>{{ r }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="currency">Currency</label>
+                                <select class="form-select" id="currency" name="currency">
+                                    {% for c in ['₹', '$', '€', '£'] %}
+                                    <option value="{{ c }}" {% if profile.get('currency') == c %}selected{% endif %}>{{ c }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Energy Settings -->
+                <div class="card-glass mb-3">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-bolt me-2 color-warning"></i>Energy Settings</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="monthly_budget">Monthly Budget</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">{{ profile.get('currency', '₹') }}</span>
+                                    <input type="number" step="100" class="form-control" id="monthly_budget" name="monthly_budget"
+                                           value="{{ profile.get('monthly_budget', 2000) }}" min="100">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="tariff_rate">Tariff Rate</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">{{ profile.get('currency', '₹') }}</span>
+                                    <input type="number" step="0.1" class="form-control" id="tariff_rate" name="tariff_rate"
+                                           value="{{ profile.get('tariff_rate', 6.0) }}" min="0.1">
+                                    <span class="input-group-text">/kWh</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="emission_factor">CO₂ Emission Factor</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" class="form-control" id="emission_factor" name="emission_factor"
+                                           value="{{ profile.get('emission_factor', 0.82) }}" min="0.01" max="2.0">
+                                    <span class="input-group-text">kg/kWh</span>
+                                </div>
+                                <div class="form-text" style="font-size: 0.72rem;">India avg: ~0.82 kg CO₂/kWh (varies by region)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-accent px-4 mb-4">
+                    <i class="fas fa-save me-2"></i> Save Settings
+                </button>
+            </form>
+
+            <!-- Password Change Form -->
+            <div class="card-glass mb-3">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-lock me-2 color-danger"></i>Change Password</h6>
+                    <form method="POST" action="{{ url_for('change_password') }}">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label" for="current_password">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" required placeholder="Enter current password">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="new_password">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" minlength="6" required placeholder="Min 6 characters">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="confirm_new_password">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm_new_password" name="confirm_new_password" minlength="6" required placeholder="Re-enter new password">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-glass btn-sm mt-3">
+                            <i class="fas fa-key me-1"></i> Update Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="col-lg-5">
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-info-circle me-2 color-blue"></i>Settings Guide</h6>
+                    <ul style="font-size: 0.82rem; color: var(--text-secondary); padding-left: 20px;">
+                        <li class="mb-2"><strong>Monthly Budget:</strong> Set your electricity spending target. The dashboard will alert you when estimated bills approach or exceed this amount.</li>
+                        <li class="mb-2"><strong>Tariff Rate:</strong> Your per-unit electricity rate. Used for bill estimation across all features.</li>
+                        <li class="mb-2"><strong>Emission Factor:</strong> kg of CO₂ per kWh of electricity. This varies by region and energy source. The default (0.82) is an approximate average for India.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card-glass">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-shield-halved me-2 color-accent"></i>Account Info</h6>
+                    <div style="font-size: 0.85rem;">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary">Email</span>
+                            <span class="fw-bold">{{ current_user.email }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary">Role</span>
+                            <span class="fw-bold">{{ current_user.role }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

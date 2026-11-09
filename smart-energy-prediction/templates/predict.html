@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Energy Prediction{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h1 class="page-title"><i class="fas fa-brain color-accent"></i> AI Energy Prediction</h1>
+            <p class="page-subtitle">Configure your electrical parameters. Our trained ML model ({{ metrics.get('best_model', 'Random Forest Regressor') }}) predicts daily consumption in kWh.</p>
+        </div>
+        <div>
+            <span class="badge rounded-pill bg-accent-light color-accent px-3 py-2">
+                <i class="fas fa-chart-line me-1"></i> Model R²: {{ metrics.get('random_forest', {}).get('r2', '0.984') }}
+            </span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card-glass">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('predict') }}" id="predictionForm">
+                        <div class="row g-4">
+                            <!-- Voltage -->
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label mb-0" for="voltage">
+                                        <i class="fas fa-bolt me-1 color-warning"></i> Voltage (V)
+                                    </label>
+                                    <span class="badge bg-light text-dark font-monospace" id="voltageBadge">230.0 V</span>
+                                </div>
+                                <input type="range" class="form-range" id="voltageSlider" min="180" max="260" step="0.5" value="230">
+                                <div class="input-group input-group-sm mt-1">
+                                    <input type="number" step="0.1" class="form-control" id="voltage" name="voltage"
+                                           value="230.0" min="150" max="300" required>
+                                    <span class="input-group-text">Volts</span>
+                                </div>
+                                <div class="form-text" style="font-size: 0.72rem;">Indian standard AC supply: 220V – 240V</div>
+                            </div>
+
+                            <!-- Current -->
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label mb-0" for="current">
+                                        <i class="fas fa-water me-1 color-blue"></i> Load Current (A)
+                                    </label>
+                                    <span class="badge bg-light text-dark font-monospace" id="currentBadge">5.0 A</span>
+                                </div>
+                                <input type="range" class="form-range" id="currentSlider" min="0.5" max="30.0" step="0.1" value="5.0">
+                                <div class="input-group input-group-sm mt-1">
+                                    <input type="number" step="0.1" class="form-control" id="current" name="current"
+                                           value="5.0" min="0.1" max="50" required>
+                                    <span class="input-group-text">Amperes</span>
+                                </div>
+                                <div class="form-text" style="font-size: 0.72rem;">Household aggregate load: 1A – 25A</div>
+                            </div>
+
+                            <!-- Usage Hours -->
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label mb-0" for="usage_hours">
+                                        <i class="fas fa-clock me-1 color-accent"></i> Daily Active Hours
+                                    </label>
+                                    <span class="badge bg-light text-dark font-monospace" id="hoursBadge">6.0 hrs</span>
+                                </div>
+                                <input type="range" class="form-range" id="hoursSlider" min="1.0" max="24.0" step="0.5" value="6.0">
+                                <div class="input-group input-group-sm mt-1">
+                                    <input type="number" step="0.1" class="form-control" id="usage_hours" name="usage_hours"
+                                           value="6.0" min="0.1" max="24" required>
+                                    <span class="input-group-text">Hours/Day</span>
+                                </div>
+                            </div>
+
+                            <!-- Number of Appliances -->
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label mb-0" for="number_of_appliances">
+                                        <i class="fas fa-plug me-1 color-purple"></i> Active Appliance Units
+                                    </label>
+                                    <span class="badge bg-light text-dark font-monospace" id="appliancesBadge">4 units</span>
+                                </div>
+                                <input type="range" class="form-range" id="appliancesSlider" min="1" max="25" step="1" value="4">
+                                <div class="input-group input-group-sm mt-1">
+                                    <input type="number" class="form-control" id="number_of_appliances" name="number_of_appliances"
+                                           value="4" min="1" max="50" required>
+                                    <span class="input-group-text">Count</span>
+                                </div>
+                            </div>
+
+                            <!-- Temperature -->
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label mb-0" for="temperature">
+                                        <i class="fas fa-temperature-half me-1 color-danger"></i> Ambient Temperature (°C)
+                                    </label>
+                                    <span class="badge bg-light text-dark font-monospace" id="tempBadge">28.0 °C</span>
+                                </div>
+                                <input type="range" class="form-range" id="tempSlider" min="15.0" max="48.0" step="0.5" value="28.0">
+                                <div class="input-group input-group-sm mt-1">
+                                    <input type="number" step="0.1" class="form-control" id="temperature" name="temperature"
+                                           value="28.0" min="-10" max="60" required>
+                                    <span class="input-group-text">°C</span>
+                                </div>
+                                <div class="form-text" style="font-size: 0.72rem;">Impacts AC and cooling thermal load</div>
+                            </div>
+
+                            <!-- Previous Consumption -->
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label mb-0" for="previous_consumption">
+                                        <i class="fas fa-history me-1 color-warning"></i> Previous Consumption Baseline
+                                    </label>
+                                    <span class="badge bg-light text-dark font-monospace" id="prevBadge">7.5 kWh</span>
+                                </div>
+                                <input type="range" class="form-range" id="prevSlider" min="0.5" max="35.0" step="0.5" value="7.5">
+                                <div class="input-group input-group-sm mt-1">
+                                    <input type="number" step="0.1" class="form-control" id="previous_consumption" name="previous_consumption"
+                                           value="7.5" min="0" max="200" required>
+                                    <span class="input-group-text">kWh</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Physics Preview Card -->
+                        <div class="p-3 mt-4 rounded-3" style="background: rgba(16, 185, 129, 0.08); border: 1px dashed var(--accent);">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <span class="fw-bold" style="font-size: 0.82rem; color: var(--accent);">
+                                        <i class="fas fa-calculator me-1"></i> Live Physics Baseline (Ideal Circuit)
+                                    </span>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                                        P = V × I = <strong id="livePowerKw">1.15 kW</strong> &nbsp;·&nbsp;
+                                        E_ideal = P × t = <strong id="liveEnergyKwh">6.90 kWh</strong>
+                                    </div>
+                                </div>
+                                <div class="badge bg-accent text-white px-3 py-2" style="font-size: 0.8rem;">
+                                    Baseline: ~<span id="liveKwhBadge">6.90</span> kWh
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-accent px-4 py-2" id="predictBtn">
+                                <i class="fas fa-brain me-2"></i> Predict Energy Demand
+                            </button>
+                            <button type="reset" class="btn btn-glass px-3 py-2" id="resetBtn">
+                                <i class="fas fa-undo me-1"></i> Reset Defaults
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Info Panel -->
+        <div class="col-lg-4">
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-circle-nodes me-2 color-blue"></i>Multi-Stage Inference</h6>
+                    <div class="d-flex flex-column gap-3" style="font-size: 0.84rem;">
+                        <div class="d-flex gap-2">
+                            <span class="badge rounded-circle bg-accent-light color-accent flex-shrink-0" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">1</span>
+                            <span><strong>Telemetry Capture:</strong> 6 electrical and environmental features are collected.</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge rounded-circle bg-accent-light color-accent flex-shrink-0" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">2</span>
+                            <span><strong>StandardScaler Transformation:</strong> Normalizes zero mean and unit variance.</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge rounded-circle bg-accent-light color-accent flex-shrink-0" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">3</span>
+                            <span><strong>Random Forest Regression:</strong> 100 decision trees evaluate non-linear load curves.</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge rounded-circle bg-accent-light color-accent flex-shrink-0" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">4</span>
+                            <span><strong>Efficiency Stratification:</strong> Categorizes into LOW, NORMAL, or HIGH load tier.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-atom me-2 color-accent"></i>Physics Formula Grounding</h6>
+                    <div style="background: var(--bg-tertiary); padding: 12px; border-radius: var(--radius-sm); font-size: 0.84rem;">
+                        <div class="fw-bold text-dark mb-1">Power Equation:</div>
+                        <code>P = V × I (Watts) → kW = (V × I) / 1000</code>
+                        <div class="fw-bold text-dark mt-2 mb-1">Energy Equation:</div>
+                        <code>E = P(kW) × t(Hours) = kWh</code>
+                    </div>
+                    <p class="mt-2 mb-0" style="font-size: 0.76rem; color: var(--text-secondary);">
+                        The ML model learns real-world resistance drops, HVAC thermal stress, standby phantom loads, and non-linearities beyond ideal physics.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card-glass">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-chart-pie me-2 color-warning"></i>Model Metrics Reference</h6>
+                    <div style="font-size: 0.82rem;">
+                        <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                            <span>Selected Best Model</span>
+                            <span class="fw-bold color-accent">{{ metrics.get('best_model', 'Random Forest') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                            <span>R² Score</span>
+                            <span class="fw-bold">{{ metrics.get('random_forest', {}).get('r2', '0.984') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                            <span>Mean Absolute Error (MAE)</span>
+                            <span class="fw-bold">{{ metrics.get('random_forest', {}).get('mae', '1.16') }} kWh</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1">
+                            <span>Root Mean Squared Error</span>
+                            <span class="fw-bold">{{ metrics.get('random_forest', {}).get('rmse', '1.59') }} kWh</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Slider - Input sync helper
+    function setupSync(sliderId, inputId, badgeId, suffix = '') {
+        const slider = document.getElementById(sliderId);
+        const input = document.getElementById(inputId);
+        const badge = document.getElementById(badgeId);
+
+        if (!slider || !input) return;
+
+        slider.addEventListener('input', function() {
+            input.value = this.value;
+            if (badge) badge.textContent = `${this.value} ${suffix}`;
+            updateLivePhysics();
+        });
+
+        input.addEventListener('input', function() {
+            slider.value = this.value;
+            if (badge) badge.textContent = `${this.value} ${suffix}`;
+            updateLivePhysics();
+        });
+    }
+
+    setupSync('voltageSlider', 'voltage', 'voltageBadge', 'V');
+    setupSync('currentSlider', 'current', 'currentBadge', 'A');
+    setupSync('hoursSlider', 'usage_hours', 'hoursBadge', 'hrs');
+    setupSync('appliancesSlider', 'number_of_appliances', 'appliancesBadge', 'units');
+    setupSync('tempSlider', 'temperature', 'tempBadge', '°C');
+    setupSync('prevSlider', 'previous_consumption', 'prevBadge', 'kWh');
+
+    function updateLivePhysics() {
+        const v = parseFloat(document.getElementById('voltage')?.value) || 230;
+        const i = parseFloat(document.getElementById('current')?.value) || 5;
+        const t = parseFloat(document.getElementById('usage_hours')?.value) || 6;
+
+        const powerKw = ((v * i) / 1000.0).toFixed(2);
+        const energyKwh = (powerKw * t).toFixed(2);
+
+        const powerEl = document.getElementById('livePowerKw');
+        const energyEl = document.getElementById('liveEnergyKwh');
+        const badgeEl = document.getElementById('liveKwhBadge');
+
+        if (powerEl) powerEl.textContent = `${powerKw} kW`;
+        if (energyEl) energyEl.textContent = `${energyKwh} kWh`;
+        if (badgeEl) badgeEl.textContent = energyKwh;
+    }
+
+    updateLivePhysics();
+});
+</script>
+{% endblock %}

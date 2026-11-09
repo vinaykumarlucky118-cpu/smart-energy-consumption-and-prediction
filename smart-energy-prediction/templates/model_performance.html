@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Model Performance{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-chart-bar color-accent"></i> Model Performance</h1>
+        <p class="page-subtitle">Evaluation metrics for the ML models used in energy prediction. These are real metrics computed on test data, not fabricated values.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            {% if metrics.get('random_forest') %}
+            <!-- Metrics Cards -->
+            <div class="row g-3 mb-grid">
+                <div class="col-md-4">
+                    <div class="stat-card text-center">
+                        <div class="stat-icon bg-accent-light color-accent mx-auto mb-2"><i class="fas fa-bullseye"></i></div>
+                        <div class="stat-value" data-counter="{{ metrics.random_forest.r2 * 100 }}" data-decimals="1" data-suffix="%">0%</div>
+                        <div class="stat-label">R² Score (RF)</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">1.0 = Perfect prediction</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card text-center">
+                        <div class="stat-icon bg-blue-light color-blue mx-auto mb-2"><i class="fas fa-ruler"></i></div>
+                        <div class="stat-value" data-counter="{{ metrics.random_forest.mae }}" data-decimals="3" data-suffix=" kWh">0 kWh</div>
+                        <div class="stat-label">MAE (RF)</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">Mean Absolute Error</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card text-center">
+                        <div class="stat-icon bg-warning-light color-warning mx-auto mb-2"><i class="fas fa-chart-line"></i></div>
+                        <div class="stat-value" data-counter="{{ metrics.random_forest.rmse }}" data-decimals="3" data-suffix=" kWh">0 kWh</div>
+                        <div class="stat-label">RMSE (RF)</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">Root Mean Square Error</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Comparison Table -->
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-code-compare me-2 color-blue"></i>Model Comparison</h6>
+                    <div class="table-responsive">
+                        <table class="table-modern w-100">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>R² Score</th>
+                                    <th>MAE (kWh)</th>
+                                    <th>RMSE (kWh)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold">Random Forest</td>
+                                    <td>{{ metrics.random_forest.r2 }}</td>
+                                    <td>{{ metrics.random_forest.mae }}</td>
+                                    <td>{{ metrics.random_forest.rmse }}</td>
+                                    <td>
+                                        {% if metrics.get('best_model') == 'Random Forest' %}
+                                        <span class="badge badge-level badge-low">BEST</span>
+                                        {% else %}
+                                        <span class="badge badge-level badge-normal">Active</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if metrics.get('linear_regression') %}
+                                <tr>
+                                    <td class="fw-bold">Linear Regression</td>
+                                    <td>{{ metrics.linear_regression.r2 }}</td>
+                                    <td>{{ metrics.linear_regression.mae }}</td>
+                                    <td>{{ metrics.linear_regression.rmse }}</td>
+                                    <td>
+                                        {% if metrics.get('best_model') == 'Linear Regression' %}
+                                        <span class="badge badge-level badge-low">BEST</span>
+                                        {% else %}
+                                        <span class="badge badge-level badge-normal">Baseline</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Chart -->
+            <div class="card-glass">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-chart-bar me-2 color-accent"></i>Metric Comparison</h6>
+                    <div class="chart-container" style="height: 280px;">
+                        <canvas id="metricChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card-glass">
+                <div class="card-body">
+                    <div class="empty-state">
+                        <i class="fas fa-chart-bar"></i>
+                        <h3>No Metrics Available</h3>
+                        <p style="font-size: 0.85rem;">Run the training pipeline to generate evaluation metrics.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-info-circle me-2 color-blue"></i>Metric Explanations</h6>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary);">
+                        <div class="mb-2">
+                            <strong>R² (Coefficient of Determination):</strong> Measures how well predictions match actual values. 1.0 = perfect, 0 = no correlation.
+                        </div>
+                        <div class="mb-2">
+                            <strong>MAE (Mean Absolute Error):</strong> Average absolute difference between predicted and actual values. Lower is better.
+                        </div>
+                        <div>
+                            <strong>RMSE (Root Mean Square Error):</strong> Similar to MAE but penalizes larger errors more heavily. Lower is better.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-cogs me-2 color-accent"></i>Feature Set</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for f in ['voltage', 'current', 'usage_hours', 'number_of_appliances', 'temperature', 'previous_consumption'] %}
+                        <span class="badge rounded-pill px-2 py-1" style="background: var(--bg-tertiary); color: var(--text-primary); font-size: 0.75rem; font-family: monospace;">{{ f }}</span>
+                        {% endfor %}
+                    </div>
+                    <p class="mt-2" style="font-size: 0.78rem; color: var(--text-muted);">
+                        6 input features are scaled using StandardScaler before being fed to the ML model.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card-glass">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-shield-halved me-2 color-warning"></i>Integrity Note</h6>
+                    <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0;">
+                        All metrics shown are <strong>real values</strong> computed from the train/test split of the dataset. No fake accuracy, fake statistics, or inflated results are used in this project.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if metrics.get('random_forest') %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('metricChart')?.getContext('2d');
+    if (!ctx) return;
+    const c = getChartColors();
+
+    const labels = ['R² Score', 'MAE (kWh)', 'RMSE (kWh)'];
+    const rfData = [{{ metrics.random_forest.r2 }}, {{ metrics.random_forest.mae }}, {{ metrics.random_forest.rmse }}];
+    {% if metrics.get('linear_regression') %}
+    const lrData = [{{ metrics.linear_regression.r2 }}, {{ metrics.linear_regression.mae }}, {{ metrics.linear_regression.rmse }}];
+    {% else %}
+    const lrData = [0, 0, 0];
+    {% endif %}
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Random Forest',
+                    data: rfData,
+                    backgroundColor: c.accent + '55',
+                    borderColor: c.accent,
+                    borderWidth: 2,
+                    borderRadius: 6
+                },
+                {
+                    label: 'Linear Regression',
+                    data: lrData,
+                    backgroundColor: c.blue + '55',
+                    borderColor: c.blue,
+                    borderWidth: 2,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: chartDefaults()
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

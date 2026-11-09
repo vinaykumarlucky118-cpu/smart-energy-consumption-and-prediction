@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h1 class="page-title"><i class="fas fa-clock-rotate-left color-blue"></i> Prediction History</h1>
+            <p class="page-subtitle">View all your past predictions. Filter by period, level, or search.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('export_csv') }}" class="btn btn-sm btn-glass" title="Export all history to CSV">
+                <i class="fas fa-file-csv color-accent me-1"></i> Export CSV
+            </a>
+            <a href="{{ url_for('predict') }}" class="btn btn-sm btn-accent">
+                <i class="fas fa-plus me-1"></i> New Prediction
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card-glass mb-3">
+        <div class="card-body py-3">
+            <form method="GET" class="d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                    <label class="form-label" style="font-size: 0.72rem;">Period</label>
+                    <select class="form-select form-select-sm" name="period" style="min-width: 120px;">
+                        <option value="">All Time</option>
+                        <option value="day" {% if date_filter == 'day' %}selected{% endif %}>Last 24h</option>
+                        <option value="week" {% if date_filter == 'week' %}selected{% endif %}>Last Week</option>
+                        <option value="month" {% if date_filter == 'month' %}selected{% endif %}>Last Month</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" style="font-size: 0.72rem;">Level</label>
+                    <select class="form-select form-select-sm" name="level" style="min-width: 120px;">
+                        <option value="">All Levels</option>
+                        <option value="LOW" {% if filter_level == 'LOW' %}selected{% endif %}>LOW</option>
+                        <option value="NORMAL" {% if filter_level == 'NORMAL' %}selected{% endif %}>NORMAL</option>
+                        <option value="HIGH" {% if filter_level == 'HIGH' %}selected{% endif %}>HIGH</option>
+                    </select>
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label" style="font-size: 0.72rem;">Search</label>
+                    <input type="text" class="form-control form-control-sm" name="q" placeholder="Search..." value="{{ search }}">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-accent btn-sm"><i class="fas fa-search me-1"></i> Filter</button>
+                </div>
+                {% if filter_level or search or date_filter %}
+                <div>
+                    <a href="{{ url_for('history') }}" class="btn btn-glass btn-sm"><i class="fas fa-times me-1"></i> Clear</a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card-glass mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0">{{ total_count }} Record{{ 's' if total_count != 1 }}</h6>
+                {% if records %}
+                <span class="badge rounded-pill" style="background: var(--bg-tertiary); color: var(--text-secondary); font-size: 0.75rem;">
+                    Page {{ page }} of {{ total_pages }}
+                </span>
+                {% endif %}
+            </div>
+
+            {% if records %}
+            <div class="table-responsive">
+                <table class="table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>V / I / Hours</th>
+                            <th>Predicted</th>
+                            <th>Level</th>
+                            <th>Est. Cost</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td>{{ r.id }}</td>
+                            <td style="font-size: 0.8rem;">{{ r.timestamp }}</td>
+                            <td style="font-size: 0.82rem;">{{ r.voltage }}V / {{ r.current }}A / {{ r.usage_hours }}h</td>
+                            <td class="fw-bold">{{ r.predicted_consumption }} kWh</td>
+                            <td><span class="badge badge-level badge-{{ r.consumption_level|lower }}">{{ r.consumption_level }}</span></td>
+                            <td class="fw-bold color-warning">₹{{ r.est_cost }}</td>
+                            <td>
+                                <a href="{{ url_for('result', record_id=r.id) }}" class="btn btn-glass btn-sm" style="padding: 3px 10px; font-size: 0.75rem;">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="d-flex justify-content-center gap-2 mt-3">
+                {% if page > 1 %}
+                <a href="?page={{ page-1 }}&level={{ filter_level }}&q={{ search }}&period={{ date_filter }}" class="btn btn-glass btn-sm">
+                    <i class="fas fa-chevron-left"></i> Prev
+                </a>
+                {% endif %}
+                <span class="btn btn-glass btn-sm active">{{ page }}</span>
+                {% if page < total_pages %}
+                <a href="?page={{ page+1 }}&level={{ filter_level }}&q={{ search }}&period={{ date_filter }}" class="btn btn-glass btn-sm">
+                    Next <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                <h3>No Predictions Found</h3>
+                <p style="font-size: 0.85rem;">{% if filter_level or search %}Try adjusting your filters.{% else %}Run your first <a href="{{ url_for('predict') }}" class="color-accent fw-bold">energy prediction</a>.{% endif %}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Trend Chart -->
+    {% if records %}
+    <div class="card-glass">
+        <div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="fas fa-chart-line me-2 color-accent"></i>Consumption Trend</h6>
+            <div class="chart-container" style="height: 250px;">
+                <canvas id="historyChart"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if records %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('historyChart')?.getContext('2d');
+    if (!ctx) return;
+    const c = getChartColors();
+    const data = {{ records | tojson }};
+    data.reverse();
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(r => r.timestamp.split(' ')[0].slice(5)),
+            datasets: [{
+                label: 'Predicted kWh',
+                data: data.map(r => r.predicted_consumption),
+                borderColor: c.accent,
+                backgroundColor: c.accentAlpha,
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: c.accent
+            }]
+        },
+        options: {
+            ...chartDefaults(),
+            plugins: { legend: { display: false } }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

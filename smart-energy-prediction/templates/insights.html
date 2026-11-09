@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}AI Insights{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-lightbulb color-warning"></i> AI Insights</h1>
+        <p class="page-subtitle">Personalized analysis generated from your energy data. These insights are rule-based/ML-derived, not from a generative AI model.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <!-- Insights Cards -->
+            <div class="d-flex flex-column gap-3 mb-3">
+                {% for insight in insights %}
+                <div class="tip-card tip-{{ insight.type }} animate-in" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+                    <div class="tip-icon"><i class="fas {{ insight.icon }}"></i></div>
+                    <div>
+                        <div class="tip-text">{{ insight.text }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Monthly Comparison -->
+            {% if comparison %}
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-arrows-left-right me-2 color-purple"></i>This Month vs Previous Month</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="comparison-card" style="background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                                <div class="comparison-label">Current Month</div>
+                                <div class="comparison-value color-accent">{{ comparison.current.avg_kwh }} kWh</div>
+                                <div class="comparison-label">avg per prediction ({{ comparison.current.count }} total)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="comparison-card" style="background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                                <div class="comparison-label">Previous Month</div>
+                                <div class="comparison-value color-blue">{{ comparison.previous.avg_kwh }} kWh</div>
+                                <div class="comparison-label">avg per prediction ({{ comparison.previous.count }} total)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            {% set diff = comparison.current.avg_kwh - comparison.previous.avg_kwh %}
+                            {% set pct = ((diff / comparison.previous.avg_kwh * 100) if comparison.previous.avg_kwh > 0 else 0)|round(1) %}
+                            <div class="comparison-card" style="background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                                <div class="comparison-label">Change</div>
+                                <div class="comparison-value {% if diff <= 0 %}color-accent{% else %}color-danger{% endif %}">
+                                    {{ "%.1f"|format(pct) }}%
+                                </div>
+                                <div class="comparison-change {% if diff <= 0 %}change-positive{% else %}change-negative{% endif %}">
+                                    <i class="fas {% if diff <= 0 %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                                    {% if diff <= 0 %}Improved{% else %}Increased{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Consumption Chart -->
+            {% if records %}
+            <div class="card-glass">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-chart-area me-2 color-accent"></i>Recent Consumption Pattern</h6>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="insightChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Energy Score -->
+            <div class="card-glass mb-3">
+                <div class="card-body text-center py-4">
+                    <div class="score-ring-container mx-auto mb-2">
+                        <svg width="140" height="140" viewBox="0 0 140 140">
+                            <circle class="score-ring-bg" cx="70" cy="70" r="56"/>
+                            <circle class="score-ring-fill" cx="70" cy="70" r="56"
+                                    stroke="{{ energy_score.color }}" data-score="{{ energy_score.score }}"/>
+                        </svg>
+                        <div class="score-ring-text">
+                            <div class="score-value" style="color: {{ energy_score.color }};">{{ energy_score.score }}</div>
+                            <div class="score-label">/ 100</div>
+                        </div>
+                    </div>
+                    <div class="fw-bold">Energy Efficiency Score</div>
+                    <div style="font-size: 0.82rem; color: {{ energy_score.color }};">{{ energy_score.status }}</div>
+                    {% if energy_score.get('breakdown') %}
+                    <div class="mt-3 text-start" style="font-size: 0.78rem;">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Consumption</span>
+                            <span class="fw-bold">{{ energy_score.breakdown.consumption }}/40</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Usage Hours</span>
+                            <span class="fw-bold">{{ energy_score.breakdown.usage_hours }}/25</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Appliances</span>
+                            <span class="fw-bold">{{ energy_score.breakdown.appliances }}/20</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Temperature</span>
+                            <span class="fw-bold">{{ energy_score.breakdown.temperature }}/15</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-info-circle me-2 color-blue"></i>About These Insights</h6>
+                    <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0;">
+                        These insights are generated using rule-based analysis and pattern detection on your prediction history.
+                        They are <strong>not</strong> generated by a generative AI model.
+                        Insights improve as more predictions are recorded.
+                    </p>
+                </div>
+            </div>
+
+            <a href="{{ url_for('predict') }}" class="btn btn-accent w-100 mb-2">
+                <i class="fas fa-brain me-2"></i> Run New Prediction
+            </a>
+            <a href="{{ url_for('simulator') }}" class="btn btn-glass w-100">
+                <i class="fas fa-sliders-h me-2"></i> Try Energy Simulator
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if records %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('insightChart')?.getContext('2d');
+    if (!ctx) return;
+    const c = getChartColors();
+    const data = {{ records | tojson }};
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map((r, i) => r.timestamp ? r.timestamp.split(' ')[0].slice(5) : `#${i+1}`),
+            datasets: [{
+                label: 'kWh',
+                data: data.map(r => r.predicted_consumption),
+                borderColor: c.accent,
+                backgroundColor: c.accentAlpha,
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 2
+            }]
+        },
+        options: {
+            ...chartDefaults(),
+            plugins: { legend: { display: false } }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

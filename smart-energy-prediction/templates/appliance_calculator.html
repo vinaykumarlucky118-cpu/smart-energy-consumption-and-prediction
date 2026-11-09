@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Appliance Calculator{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-plug color-purple"></i> Appliance Energy Calculator</h1>
+        <p class="page-subtitle">Add your appliances to find out which ones consume the most energy and how much they cost per month.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Add Appliance Form -->
+        <div class="col-lg-5">
+            <div class="card-glass">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-plus-circle me-2 color-accent"></i>Add Appliance</h6>
+                    
+                    <!-- Preset Selector -->
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 0.82rem;">Quick Select Preset</label>
+                        <select class="form-select" id="appliancePreset">
+                            <option value="">— Choose a preset —</option>
+                            {% for a in default_appliances %}
+                            <option value='{"name": "{{ a.name }}", "power": {{ a.power_watts }}}'>
+                                {{ a.name }} ({{ a.power_watts }}W)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('appliance_calculator') }}">
+                        <input type="hidden" name="action" value="add">
+                        <div class="mb-3">
+                            <label class="form-label" for="appliance_name">Appliance Name</label>
+                            <input type="text" class="form-control" id="appliance_name" name="appliance_name" placeholder="e.g. Ceiling Fan" required>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <label class="form-label" for="power_watts">Power (W)</label>
+                                <input type="number" class="form-control" id="power_watts" name="power_watts" placeholder="75" min="1" required>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label" for="quantity">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" max="20">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label" for="hours_per_day">Hours/Day</label>
+                                <input type="number" step="0.5" class="form-control" id="hours_per_day" name="hours_per_day" value="6" min="0.5" max="24">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-accent w-100 mt-3">
+                            <i class="fas fa-plus me-2"></i> Add Appliance
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Totals Card -->
+            {% if appliances %}
+            <div class="card-glass mt-3" style="border-left: 4px solid var(--accent);">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-calculator me-2 color-accent"></i>Total Summary</h6>
+                    <div class="row g-2 text-center">
+                        <div class="col-6">
+                            <div class="p-2 rounded-2" style="background: var(--bg-tertiary);">
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">Daily</div>
+                                <div class="fw-bold">{{ totals.daily_kwh }} kWh</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 rounded-2" style="background: var(--bg-tertiary);">
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">Monthly</div>
+                                <div class="fw-bold">{{ totals.monthly_kwh }} kWh</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 rounded-2" style="background: var(--warning-light);">
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">Monthly Cost</div>
+                                <div class="fw-bold color-warning">₹{{ totals.monthly_cost }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 rounded-2" style="background: var(--accent-light);">
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">CO₂/Month</div>
+                                <div class="fw-bold color-accent">{{ totals.co2_monthly }} kg</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-center" style="font-size: 0.72rem; color: var(--text-muted);">
+                        Tariff: ₹{{ profile.get('tariff_rate', 6.0) }}/kWh · Formula: E = P × Qty × Hours / 1000
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clear All -->
+            <form method="POST" action="{{ url_for('appliance_calculator') }}" class="mt-2">
+                <input type="hidden" name="action" value="clear">
+                <button type="submit" class="btn btn-glass btn-sm w-100" onclick="return confirm('Remove all appliances?')">
+                    <i class="fas fa-trash me-1"></i> Clear All Appliances
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- Appliance List & Charts -->
+        <div class="col-lg-7">
+            {% if appliances %}
+            <div class="card-glass mb-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-list me-2 color-blue"></i>Your Appliances</h6>
+                    <div class="table-responsive">
+                        <table class="table-modern w-100">
+                            <thead>
+                                <tr>
+                                    <th>Appliance</th>
+                                    <th>Power</th>
+                                    <th>Qty</th>
+                                    <th>Hrs/Day</th>
+                                    <th>Daily kWh</th>
+                                    <th>Monthly kWh</th>
+                                    <th>Cost/Month</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in appliances %}
+                                <tr>
+                                    <td class="fw-bold">{{ a.name }}</td>
+                                    <td>{{ a.power_watts }}W</td>
+                                    <td>{{ a.quantity }}</td>
+                                    <td>{{ a.hours_per_day }}h</td>
+                                    <td>{{ a.daily_kwh }}</td>
+                                    <td>{{ a.monthly_kwh }}</td>
+                                    <td class="fw-bold color-warning">₹{{ a.monthly_cost }}</td>
+                                    <td>
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="appliance_id" value="{{ a.id }}">
+                                            <button type="submit" class="btn btn-sm" style="color: var(--danger); padding: 2px 6px;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="card-glass">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-chart-bar me-2 color-accent"></i>Appliance-wise Monthly Consumption</h6>
+                    <div class="chart-container" style="height: 280px;">
+                        <canvas id="applianceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card-glass">
+                <div class="card-body">
+                    <div class="empty-state">
+                        <i class="fas fa-plug"></i>
+                        <h3>No Appliances Added</h3>
+                        <p style="font-size: 0.85rem;">Add appliances using the form to see their energy consumption breakdown.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if appliances %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('applianceChart')?.getContext('2d');
+    if (!ctx) return;
+    const c = getChartColors();
+    const data = {{ appliances | tojson }};
+    const colors = [c.accent, c.blue, c.warning, c.danger, c.purple, '#06b6d4', '#ec4899', '#f97316'];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(a => a.name),
+            datasets: [{
+                label: 'Monthly kWh',
+                data: data.map(a => a.monthly_kwh),
+                backgroundColor: data.map((_, i) => colors[i % colors.length] + '33'),
+                borderColor: data.map((_, i) => colors[i % colors.length]),
+                borderWidth: 2,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            ...chartDefaults(),
+            indexAxis: data.length > 6 ? 'y' : 'x',
+            plugins: { legend: { display: false } }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

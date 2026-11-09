@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Bill Estimator{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title"><i class="fas fa-file-invoice-dollar color-warning"></i> Electricity Bill Estimator</h1>
+        <p class="page-subtitle">Estimate your electricity bill based on consumption and tariff. <strong>Note:</strong> This is an estimated bill — actual bills may include fixed charges, taxes, and different tariff rules.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card-glass">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('bill_estimator') }}">
+                        <div class="mb-3">
+                            <label class="form-label" for="energy_kwh"><i class="fas fa-bolt me-1 color-accent"></i> Energy Consumption (kWh)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.1" class="form-control" id="energy_kwh" name="energy_kwh"
+                                       placeholder="e.g. 250" min="0.1" max="10000" required
+                                       value="{{ result.energy_kwh if result else '' }}">
+                                <span class="input-group-text">kWh</span>
+                            </div>
+                            <div class="form-text" style="font-size: 0.72rem;">Total energy consumed in a billing period</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="slab_type"><i class="fas fa-layer-group me-1 color-blue"></i> Tariff Type</label>
+                            <select class="form-select" id="slab_type" name="slab_type">
+                                <option value="flat" {% if not result or result.slab_type == 'flat' %}selected{% endif %}>Flat Rate (Single rate for all units)</option>
+                                <option value="slab_residential" {% if result and result.slab_type == 'slab_residential' %}selected{% endif %}>Residential Slab (Tiered pricing)</option>
+                                <option value="slab_commercial" {% if result and result.slab_type == 'slab_commercial' %}selected{% endif %}>Commercial Slab (Higher tiered pricing)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3" id="flatRateGroup">
+                            <label class="form-label" for="flat_rate"><i class="fas fa-indian-rupee-sign me-1 color-warning"></i> Tariff Rate (₹ per unit)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" step="0.1" class="form-control" id="flat_rate" name="flat_rate"
+                                       value="{{ result.flat_rate if result else profile.get('tariff_rate', 6.0) }}" min="0.1">
+                                <span class="input-group-text">per kWh</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-accent w-100">
+                            <i class="fas fa-calculator me-2"></i> Calculate Bill
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Slab Info -->
+            <div class="card-glass mt-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2"><i class="fas fa-info-circle me-2 color-blue"></i>Tariff Slab Details</h6>
+                    {% for key, slab in tariff_slabs.items() %}
+                    {% if slab.get('slabs') %}
+                    <div class="mb-2 p-2 rounded-2" style="background: var(--bg-tertiary); font-size: 0.82rem;">
+                        <div class="fw-bold">{{ slab.name }}</div>
+                        <div class="text-secondary" style="font-size: 0.75rem;">{{ slab.description }}</div>
+                        {% for s in slab.slabs %}
+                        <div>{{ s.label if s.label else (s.limit ~ ' units') }}: ₹{{ s.rate }}/unit</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    <p style="font-size: 0.72rem; color: var(--text-muted);">These are example slabs. Actual tariff structures vary by state and utility provider.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="col-lg-6">
+            {% if result %}
+            <div class="card-glass" style="border-left: 4px solid var(--warning);">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-receipt me-2 color-warning"></i>Estimated Bill</h5>
+
+                    <div class="text-center mb-4">
+                        <div style="font-size: 3rem; font-weight: 800; font-family: 'Outfit'; color: var(--warning);">
+                            {{ result.currency }}{{ result.total_bill }}
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                            For {{ result.energy_kwh }} kWh consumption
+                        </div>
+                    </div>
+
+                    <!-- Breakdown -->
+                    {% if result.breakdown %}
+                    <h6 class="fw-bold mb-2" style="font-size: 0.85rem;">Bill Breakdown</h6>
+                    <div class="table-responsive">
+                        <table class="table-modern w-100">
+                            <thead>
+                                <tr>
+                                    <th>Range</th>
+                                    <th>Units</th>
+                                    <th>Rate</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for b in result.breakdown %}
+                                <tr>
+                                    <td>{{ b.get('range', '-') }}</td>
+                                    <td>{{ b.units }} kWh</td>
+                                    <td>₹{{ b.rate }}</td>
+                                    <td class="fw-bold">₹{{ b.cost }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3 p-3 rounded-3" style="background: var(--bg-tertiary);">
+                        <div class="d-flex justify-content-between mb-1" style="font-size: 0.85rem;">
+                            <span>CO₂ Emissions</span>
+                            <span class="fw-bold color-accent">{{ result.co2 }} kg</span>
+                        </div>
+                    </div>
+
+                    <div class="alert-custom alert-info mt-3" style="font-size: 0.8rem;">
+                        <i class="fas fa-info-circle"></i>
+                        <span>This is an <strong>estimated bill</strong>. Actual bills include fixed charges, taxes, surcharges, and may use different tariff structures.</span>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card-glass">
+                <div class="card-body">
+                    <div class="empty-state">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <h3>Enter Consumption Details</h3>
+                        <p style="font-size: 0.85rem;">Fill in the form to get your estimated electricity bill.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

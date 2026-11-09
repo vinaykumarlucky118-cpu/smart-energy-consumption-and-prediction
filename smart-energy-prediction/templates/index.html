@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnerSense – Smart Energy Intelligence Platform</title>
+    <meta name="description" content="EnerSense uses Machine Learning (R²=0.984) to predict electricity consumption, estimate bills, and help you save energy and reduce carbon footprint.">
+
+    <!-- Preconnect for fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- FontAwesome 6 Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- EnerSense CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        /* ── Landing-page-specific overrides ── */
+        :root {
+            --lp-hero-bg: linear-gradient(135deg, #0a0f1e 0%, #0d1b2a 40%, #0a1628 70%, #061020 100%);
+            --lp-card-bg: rgba(255,255,255,0.04);
+            --lp-card-border: rgba(255,255,255,0.08);
+            --lp-nav-bg: rgba(10,15,30,0.85);
+        }
+
+        /* Reset sidebar layout for landing page */
+        body { display: block !important; background: #0a0f1e; min-height: 100vh; }
+
+        /* ── Top Navbar ── */
+        .lp-nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--lp-nav-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0.85rem 0;
+        }
+        .lp-nav .navbar-brand {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.35rem;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .lp-nav .navbar-brand .bolt-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; color: #fff;
+            box-shadow: 0 0 12px rgba(16,185,129,0.5);
+        }
+        .lp-nav .nav-link {
+            color: rgba(255,255,255,0.75) !important;
+            font-weight: 500;
+            transition: color 0.2s;
+            padding: 0.4rem 0.75rem !important;
+            font-size: 0.9rem;
+        }
+        .lp-nav .nav-link:hover { color: #fff !important; }
+        .lp-nav .btn-nav-signin {
+            color: rgba(255,255,255,0.85);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 8px;
+            padding: 0.4rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.05);
+        }
+        .lp-nav .btn-nav-signin:hover {
+            background: rgba(255,255,255,0.12);
+            color: #fff;
+        }
+        .lp-nav .btn-nav-cta {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            border-radius: 8px;
+            padding: 0.4rem 1.1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.35);
+        }
+        .lp-nav .btn-nav-cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(16,185,129,0.5);
+            color: #fff;
+        }
+
+        /* ── Hero Section ── */
+        .hero-section {
+            background: var(--lp-hero-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding: 5rem 0 4rem;
+        }
+        .hero-section::before {
+            content: '';
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(16,185,129,0.15) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 50% at 80% 60%, rgba(99,102,241,0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .hero-grid-lines {
+            position: absolute; inset: 0; pointer-events: none; opacity: 0.04;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            background: rgba(16,185,129,0.12);
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 50px;
+            padding: 0.45rem 1.1rem;
+            font-size: 0.825rem;
+            font-weight: 600;
+            color: #10b981;
+            margin-bottom: 1.75rem;
+            letter-spacing: 0.02em;
+        }
+        .hero-headline {
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(2.4rem, 6vw, 4.2rem);
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+        .hero-headline .highlight {
+            background: linear-gradient(135deg, #10b981, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-subheadline {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.65);
+            line-height: 1.7;
+            max-width: 620px;
+            margin-bottom: 2.25rem;
+            font-weight: 400;
+        }
+        .hero-cta-group { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 3.5rem; }
+        .btn-hero-primary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 0.85rem 2rem;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.25s;
+            box-shadow: 0 8px 24px rgba(16,185,129,0.4);
+            display: inline-flex; align-items: center; gap: 0.5rem;
+        }
+        .btn-hero-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(16,185,129,0.55);
+            color: #fff;
+        }
+        .btn-hero-glass {
+            background: rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 12px;
+            padding: 0.85rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.25s;
+            backdrop-filter: blur(10px);
+            display: inline-flex; align-items: center; gap: 0.5rem;
+        }
+        .btn-hero-glass:hover {
+            background: rgba(255,255,255,0.12);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+        .hero-stats {
+            display: flex; gap: 2rem; flex-wrap: wrap;
+        }
+        .hero-stat {
+            display: flex; flex-direction: column;
+        }
+        .hero-stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+        }
+        .hero-stat-value .accent { color: #10b981; }
+        .hero-stat-label {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 0.3rem;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .hero-stat-divider {
+            width: 1px;
+            background: rgba(255,255,255,0.12);
+            margin: 0 0.5rem;
+        }
+
+        /* ── Hero Visual (right column) ── */
+        .hero-visual {
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .hero-card-float {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 1.75rem;
+            backdrop-filter: blur(16px);
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.4);
+        }
+        .hero-card-header {
+            display: flex; align-items: center; gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .hero-card-icon {
+            width: 42px; height: 42px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1.1rem;
+        }
+        .hero-card-title { color: #fff; font-weight: 700; font-size: 1rem; }
+        .hero-card-sub { color: rgba(255,255,255,0.5); font-size: 0.75rem; }
+        .hero-metric-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.04);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.6rem;
+            border: 1px solid rgba(255,255,255,0.07);
+        }
+        .hero-metric-label { color: rgba(255,255,255,0.55); font-size: 0.82rem; }
+        .hero-metric-value { color: #fff; font-weight: 700; font-size: 0.9rem; }
+        .hero-metric-value.green { color: #10b981; }
+        .hero-metric-value.blue { color: #6366f1; }
+        .hero-metric-value.amber { color: #f59e0b; }
+        .hero-result-box {
+            margin-top: 1.25rem;
+            background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(99,102,241,0.1));
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .hero-result-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem; font-weight: 800; color: #10b981;
+        }
+        .hero-result-label { color: rgba(255,255,255,0.6); font-size: 0.8rem; margin-top: 0.2rem; }
+
+        /* ── Sections ── */
+        .lp-section { padding: 5rem 0; }
+        .lp-section-dark { background: #080d1a; }
+        .lp-section-alt { background: #0a0f1e; }
+        .section-eyebrow {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #10b981;
+            margin-bottom: 0.75rem;
+        }
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(1.8rem, 4vw, 2.75rem);
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.15;
+            margin-bottom: 1rem;
+        }
+        .section-subtitle {
+            color: rgba(255,255,255,0.55);
+            font-size: 1.05rem;
+            max-width: 560px;
+            margin: 0 auto 3rem;
+            line-height: 1.65;
+        }
+
+        /* ── Feature Cards ── */
+        .feature-card {
+            background: var(--lp-card-bg);
+            border: 1px solid var(--lp-card-border);
+            border-radius: 18px;
+            padding: 1.75rem;
+            height: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(16,185,129,0.4), transparent);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(16,185,129,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-icon-wrap {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 1.25rem;
+        }
+        .fi-green  { background: rgba(16,185,129,0.15); color: #10b981; }
+        .fi-blue   { background: rgba(99,102,241,0.15); color: #6366f1; }
+        .fi-amber  { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .fi-purple { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+        .fi-red    { background: rgba(239,68,68,0.15);  color: #ef4444; }
+        .fi-teal   { background: rgba(20,184,166,0.15); color: #14b8a6; }
+        .feature-title {
+            color: #fff; font-weight: 700; font-size: 1.05rem; margin-bottom: 0.5rem;
+        }
+        .feature-desc {
+            color: rgba(255,255,255,0.5); font-size: 0.875rem; line-height: 1.6;
+        }
+
+        /* ── How It Works ── */
+        .step-card {
+            background: var(--lp-card-bg);
+            border: 1px solid var(--lp-card-border);
+            border-radius: 16px;
+            padding: 1.75rem 1.5rem;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s;
+            height: 100%;
+        }
+        .step-card:hover { border-color: rgba(99,102,241,0.3); transform: translateY(-3px); }
+        .step-number {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800; font-size: 1rem;
+            color: #fff;
+            margin: 0 auto 1.1rem;
+            box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+        }
+        .step-title { color: #fff; font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; }
+        .step-desc { color: rgba(255,255,255,0.5); font-size: 0.82rem; line-height: 1.6; }
+        .step-connector {
+            display: none;
+        }
+        @media (min-width: 768px) {
+            .step-connector {
+                display: flex; align-items: center; justify-content: center;
+                color: rgba(255,255,255,0.15); font-size: 1.25rem;
+            }
+        }
+
+        /* ── Why EnerSense ── */
+        .benefit-card {
+            background: var(--lp-card-bg);
+            border: 1px solid var(--lp-card-border);
+            border-radius: 14px;
+            padding: 1.5rem;
+            display: flex; gap: 1rem; align-items: flex-start;
+            transition: all 0.25s;
+        }
+        .benefit-card:hover { border-color: rgba(16,185,129,0.25); transform: translateX(4px); }
+        .benefit-icon {
+            width: 44px; height: 44px; flex-shrink: 0;
+            background: rgba(16,185,129,0.12);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: #10b981; font-size: 1.15rem;
+        }
+        .benefit-title { color: #fff; font-weight: 700; font-size: 0.95rem; margin-bottom: 0.3rem; }
+        .benefit-desc { color: rgba(255,255,255,0.5); font-size: 0.82rem; line-height: 1.5; }
+
+        /* ── CTA Section ── */
+        .cta-section {
+            background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(99,102,241,0.1));
+            border-top: 1px solid rgba(16,185,129,0.15);
+            border-bottom: 1px solid rgba(16,185,129,0.15);
+        }
+
+        /* ── Footer ── */
+        .lp-footer {
+            background: #060b16;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 3rem 0 2rem;
+        }
+        .lp-footer-brand {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex; align-items: center; gap: 0.5rem;
+            text-decoration: none;
+        }
+        .lp-footer-brand:hover { color: #10b981; }
+        .lp-footer-tagline { color: rgba(255,255,255,0.4); font-size: 0.82rem; margin-top: 0.4rem; }
+        .lp-footer-link {
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+        .lp-footer-link:hover { color: #10b981; }
+        .lp-footer-bottom {
+            margin-top: 2.5rem; padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.3);
+            font-size: 0.78rem;
+        }
+
+        /* ── Responsive tweaks ── */
+        @media (max-width: 768px) {
+            .hero-section { padding: 3rem 0 3rem; min-height: auto; }
+            .hero-visual { display: none; }
+            .hero-stats { gap: 1.25rem; }
+            .lp-section { padding: 3.5rem 0; }
+        }
+    </style>
+</head>
+<body class="lp-body">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TOP NAVBAR
+    ═══════════════════════════════════════════════════════════ -->
+    <nav class="lp-nav navbar navbar-expand-md">
+        <div class="container">
+            <a href="{{ url_for('index') }}" class="navbar-brand">
+                <div class="bolt-icon"><i class="fas fa-bolt"></i></div>
+                EnerSense
+            </a>
+            <button class="navbar-toggler border-0 shadow-none" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#lpNavMenu"
+                    aria-controls="lpNavMenu" aria-expanded="false" aria-label="Toggle navigation"
+                    style="color: rgba(255,255,255,0.7);">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="lpNavMenu">
+                <ul class="navbar-nav mx-auto gap-1">
+                    <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#how">How It Works</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('about') }}">About</a></li>
+                </ul>
+                <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+                    {% if current_user %}
+                        <a href="{{ url_for('dashboard_page') }}" class="btn-nav-cta">
+                            <i class="fas fa-th-large me-1"></i> Dashboard
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="btn-nav-signin">Sign In</a>
+                        <a href="{{ url_for('register') }}" class="btn-nav-cta">Get Started</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         HERO SECTION
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="hero-section">
+        <div class="hero-grid-lines"></div>
+        <div class="container position-relative">
+            <div class="row align-items-center g-5">
+
+                <!-- Left: Copy -->
+                <div class="col-lg-6">
+                    <div class="hero-badge">
+                        <i class="fas fa-robot"></i>
+                        AI-Powered Energy Intelligence
+                    </div>
+                    <h1 class="hero-headline">
+                        Smart Energy Decisions<br>
+                        for <span class="highlight">Every Home</span>
+                    </h1>
+                    <p class="hero-subheadline">
+                        EnerSense uses Machine Learning (R²=0.984) to predict your electricity
+                        consumption, estimate bills, and help you save money while reducing your
+                        carbon footprint.
+                    </p>
+                    <div class="hero-cta-group">
+                        {% if current_user %}
+                        <a href="{{ url_for('dashboard_page') }}" class="btn-hero-primary">
+                            <i class="fas fa-th-large"></i> Go to Dashboard
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('predict') }}" class="btn-hero-primary">
+                            Start Analyzing <i class="fas fa-arrow-right"></i>
+                        </a>
+                        {% endif %}
+                        <a href="#features" class="btn-hero-glass">
+                            See Features <i class="fas fa-arrow-down"></i>
+                        </a>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <span class="hero-stat-value"><span class="accent">R²</span> 0.984</span>
+                            <span class="hero-stat-label">Model Accuracy</span>
+                        </div>
+                        <div class="hero-stat-divider"></div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value">{{ metrics.dataset_stats.total_records if metrics else '100' }}<span class="accent">+</span></span>
+                            <span class="hero-stat-label">Predictions Made</span>
+                        </div>
+                        <div class="hero-stat-divider"></div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value">15<span class="accent">+</span></span>
+                            <span class="hero-stat-label">Smart Features</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Floating preview card -->
+                <div class="col-lg-6">
+                    <div class="hero-visual">
+                        <div class="hero-card-float">
+                            <div class="hero-card-header">
+                                <div class="hero-card-icon">
+                                    <i class="fas fa-brain"></i>
+                                </div>
+                                <div>
+                                    <div class="hero-card-title">AI Energy Prediction</div>
+                                    <div class="hero-card-sub">Random Forest · R²=0.984</div>
+                                </div>
+                            </div>
+                            <div class="hero-metric-row">
+                                <span class="hero-metric-label"><i class="fas fa-bolt me-1"></i> Voltage</span>
+                                <span class="hero-metric-value green">230 V</span>
+                            </div>
+                            <div class="hero-metric-row">
+                                <span class="hero-metric-label"><i class="fas fa-plug me-1"></i> Current</span>
+                                <span class="hero-metric-value blue">8.5 A</span>
+                            </div>
+                            <div class="hero-metric-row">
+                                <span class="hero-metric-label"><i class="fas fa-clock me-1"></i> Usage Hours</span>
+                                <span class="hero-metric-value amber">6 hrs/day</span>
+                            </div>
+                            <div class="hero-metric-row">
+                                <span class="hero-metric-label"><i class="fas fa-home me-1"></i> Appliances</span>
+                                <span class="hero-metric-value green">5 devices</span>
+                            </div>
+                            <div class="hero-result-box">
+                                <div class="hero-result-value">18.4 kWh</div>
+                                <div class="hero-result-label">Predicted Daily Consumption · NORMAL level</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         FEATURES SECTION
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="lp-section lp-section-dark" id="features">
+        <div class="container">
+            <div class="text-center mb-5">
+                <p class="section-eyebrow">Features</p>
+                <h2 class="section-title">Everything you need to<br>manage energy smarter</h2>
+                <p class="section-subtitle">
+                    A complete platform combining physics principles, machine learning,
+                    and real-time analytics — built for Indian homes.
+                </p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap fi-green">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="feature-title">AI Energy Prediction</div>
+                        <div class="feature-desc">
+                            Our Random Forest ML model (R²=0.984, MAE=1.16) predicts your
+                            daily kWh consumption from voltage, current, usage hours, and more.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap fi-blue">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="feature-title">Live Dashboard</div>
+                        <div class="feature-desc">
+                            Monitor real-time consumption trends, usage alerts, daily/weekly
+                            comparisons, and energy level classifications — all in one view.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap fi-amber">
+                            <i class="fas fa-plug"></i>
+                        </div>
+                        <div class="feature-title">Appliance Calculator</div>
+                        <div class="feature-desc">
+                            Add individual appliances, set wattage and hours, and get a
+                            per-device energy and cost breakdown with savings recommendations.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap fi-purple">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="feature-title">Energy Advisor</div>
+                        <div class="feature-desc">
+                            Chat with an AI assistant trained on energy data. Ask questions
+                            about your consumption and get personalized saving strategies.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap fi-red">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </div>
+                        <div class="feature-title">Bill Estimator</div>
+                        <div class="feature-desc">
+                            India-ready slab tariff calculation with per-slab breakdown,
+                            fixed charges, and monthly vs. annual cost projections.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrap fi-teal">
+                            <i class="fas fa-leaf"></i>
+                        </div>
+                        <div class="feature-title">Carbon Footprint</div>
+                        <div class="feature-desc">
+                            Track your CO₂ emissions based on your energy consumption and
+                            region's emission factor. Set goals and monitor your green progress.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         HOW IT WORKS
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="lp-section lp-section-alt" id="how">
+        <div class="container">
+            <div class="text-center mb-5">
+                <p class="section-eyebrow">How It Works</p>
+                <h2 class="section-title">Predictions powered by<br>physics + machine learning</h2>
+                <p class="section-subtitle">
+                    From raw electrical parameters to actionable insights — in seconds.
+                </p>
+            </div>
+            <div class="row g-3 align-items-stretch">
+                <div class="col-6 col-md-3">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <div class="step-title">Enter Parameters</div>
+                        <div class="step-desc">
+                            Input voltage (V), current (A), usage hours, appliances, temperature,
+                            and previous consumption.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <div class="step-title">Normalize with Scaler</div>
+                        <div class="step-desc">
+                            StandardScaler normalizes all inputs to zero mean and unit
+                            variance for unbiased ML inference.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <div class="step-title">Random Forest Predicts</div>
+                        <div class="step-desc">
+                            100 decision trees ensemble-vote to produce a precise kWh
+                            prediction with R²=0.984 accuracy.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="step-card">
+                        <div class="step-number">4</div>
+                        <div class="step-title">Personalized Insights</div>
+                        <div class="step-desc">
+                            Get consumption level (LOW/NORMAL/HIGH), bill estimate,
+                            carbon footprint, and saving tips.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         WHY ENERSENSE
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="lp-section lp-section-dark">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-5">
+                    <p class="section-eyebrow">Why EnerSense</p>
+                    <h2 class="section-title" style="text-align:left;">Built for real homes, real savings</h2>
+                    <p style="color: rgba(255,255,255,0.5); line-height: 1.7; font-size: 0.95rem;">
+                        EnerSense isn't just a demo project — it's a production-quality platform
+                        designed with real Indian electricity tariff slabs, privacy-first local data
+                        storage, and state-of-the-art ML models trained on 2,000+ records.
+                    </p>
+                </div>
+                <div class="col-lg-7">
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6">
+                            <div class="benefit-card">
+                                <div class="benefit-icon"><i class="fas fa-brain"></i></div>
+                                <div>
+                                    <div class="benefit-title">Real ML Model</div>
+                                    <div class="benefit-desc">Random Forest trained on 2,000+ records. MAE = 1.16 kWh, R² = 0.984.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="benefit-card">
+                                <div class="benefit-icon"><i class="fas fa-indian-rupee-sign"></i></div>
+                                <div>
+                                    <div class="benefit-title">India-Ready Tariff Slabs</div>
+                                    <div class="benefit-desc">Accurate slab-wise electricity bill calculations for Indian consumers.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="benefit-card">
+                                <div class="benefit-icon"><i class="fas fa-shield"></i></div>
+                                <div>
+                                    <div class="benefit-title">Privacy First</div>
+                                    <div class="benefit-desc">All data stored locally in SQLite. No cloud sync, no third-party tracking.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="benefit-card">
+                                <div class="benefit-icon"><i class="fas fa-code-branch"></i></div>
+                                <div>
+                                    <div class="benefit-title">Open Source</div>
+                                    <div class="benefit-desc">B.Tech CSE (AI & ML) project — transparent, extensible, and educational.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         CTA SECTION
+    ═══════════════════════════════════════════════════════════ -->
+    <section class="lp-section cta-section">
+        <div class="container text-center">
+            <p class="section-eyebrow">Get Started</p>
+            <h2 class="section-title">Ready to start saving energy?</h2>
+            <p class="section-subtitle">
+                Join EnerSense today and get AI-powered predictions, bill estimates,
+                and personalized energy-saving advice — completely free.
+            </p>
+            {% if current_user %}
+            <a href="{{ url_for('dashboard_page') }}" class="btn-hero-primary" style="font-size: 1.05rem; padding: 1rem 2.5rem;">
+                <i class="fas fa-th-large"></i> Go to Your Dashboard
+            </a>
+            {% else %}
+            <a href="{{ url_for('register') }}" class="btn-hero-primary" style="font-size: 1.05rem; padding: 1rem 2.5rem;">
+                Get Started Free <i class="fas fa-arrow-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         FOOTER
+    ═══════════════════════════════════════════════════════════ -->
+    <footer class="lp-footer">
+        <div class="container">
+            <div class="row g-4">
+                <!-- Brand -->
+                <div class="col-lg-4">
+                    <a href="{{ url_for('index') }}" class="lp-footer-brand">
+                        <span style="width:30px;height:30px;background:linear-gradient(135deg,#10b981,#059669);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#fff;">
+                            <i class="fas fa-bolt"></i>
+                        </span>
+                        EnerSense
+                    </a>
+                    <p class="lp-footer-tagline mt-2">Smart Energy Intelligence Platform</p>
+                    <p class="lp-footer-tagline mt-1">
+                        <i class="fas fa-atom me-1" style="color:#8b5cf6;"></i>
+                        Physics (P = V × I) + Machine Learning
+                    </p>
+                </div>
+                <!-- Quick Links -->
+                <div class="col-6 col-lg-2 offset-lg-2">
+                    <p style="color:rgba(255,255,255,0.4); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; font-weight:600; margin-bottom:1rem;">Platform</p>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="{{ url_for('dashboard_page') }}" class="lp-footer-link">Dashboard</a>
+                        <a href="{{ url_for('predict') }}" class="lp-footer-link">AI Prediction</a>
+                        <a href="{{ url_for('history') }}" class="lp-footer-link">History</a>
+                        <a href="{{ url_for('insights_page') }}" class="lp-footer-link">AI Insights</a>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <p style="color:rgba(255,255,255,0.4); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; font-weight:600; margin-bottom:1rem;">Tools</p>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="{{ url_for('bill_estimator') }}" class="lp-footer-link">Bill Estimator</a>
+                        <a href="{{ url_for('appliance_calculator') }}" class="lp-footer-link">Appliance Calc</a>
+                        <a href="{{ url_for('simulator') }}" class="lp-footer-link">Simulator</a>
+                        <a href="{{ url_for('settings') }}" class="lp-footer-link">Settings</a>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <p style="color:rgba(255,255,255,0.4); font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; font-weight:600; margin-bottom:1rem;">More</p>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="{{ url_for('about') }}" class="lp-footer-link">Physics & AI</a>
+                        <a href="{{ url_for('model_performance') }}" class="lp-footer-link">Model Metrics</a>
+                        <a href="{{ url_for('advisor_page') }}" class="lp-footer-link">Energy Advisor</a>
+                        {% if not current_user %}
+                        <a href="{{ url_for('login') }}" class="lp-footer-link">Sign In</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="lp-footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                <span>&copy; 2026 EnerSense – Smart Energy Intelligence Platform</span>
+                <span>B.Tech CSE (AI &amp; ML) &nbsp;·&nbsp; <i class="fas fa-atom" style="color:#8b5cf6;"></i> P = V × I &nbsp;·&nbsp; <i class="fas fa-brain" style="color:#6366f1;"></i> Machine Learning</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- EnerSense JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <script>
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
